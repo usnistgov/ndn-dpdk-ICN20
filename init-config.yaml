@@ -1,0 +1,49 @@
+mempool:
+  IND:
+    capacity: 4194303
+    cachesize: 267
+  ETHRX:
+    capacity: 2097151
+    cachesize: 337
+    dataroomsize: 9000
+  NAME:
+    capacity: 65535
+    cachesize: 255
+  HDR:
+    capacity: 65535
+    cachesize: 255
+  INTG:
+    capacity: 65535
+    cachesize: 255
+  INT:
+    capacity: 65535
+    cachesize: 255
+  DATA:
+    capacity: 65535
+    cachesize: 255
+    dataroomsize: 9000
+face:
+  enableeth: true
+  ethdisablerxflow: false
+  ethmtu: 9000
+  ethrxqframes: 4096
+  ethtxqpkts: 256
+  ethtxqframes: 4096
+  enablesock: false
+ndt:
+  prefixlen: 2
+  indexbits: 16
+  samplefreq: 8
+fib:
+  maxentries: 65535
+  nbuckets: 256
+  startdepth: 8
+fwdp:
+  inputlcores: [1, 2]
+  cryptolcores: [5]
+  fwdlcores: [6, 7, 8, 9, 10, 11]
+  fwdqueuecapacity: 256
+  latencysamplefreq: 16
+  pcctcapacity: 524287
+  cscapmd: 65536
+  cscapmi: 65536
