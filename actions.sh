@@ -11,8 +11,8 @@ function fw_start() {
     sleep 0.5
   done
 
-  $CMD_CREATEFACE $REMOTE_DN $LOCAL_DN > runtime/faceid-dn.txt
-  $CMD_CREATEFACE $REMOTE_UP $LOCAL_UP > runtime/faceid-up.txt
+  $CMD_CREATEFACE $REMOTE_DN $LOCAL_DN >runtime/faceid-dn.txt
+  $CMD_CREATEFACE $REMOTE_UP $LOCAL_UP >runtime/faceid-up.txt
   local NEXTHOP=$(cat runtime/faceid-up.txt)
 
   local I=0
@@ -108,4 +108,16 @@ retestcount: 1
 ' >runtime/tb.yaml
 
   sudo LOG_ThroughputBenchmark=V $CMD_NDNPING -l $CPU_CLI --socket-mem $MEM_CLI --file-prefix client -w $IF_CLI -- -initcfg @runtime/client.init-config.yaml -cnt 0 -tasks=@runtime/client.tasks.yaml -throughput-benchmark=@runtime/tb.yaml 2>runtime/tb.log >runtime/tb.out
+}
+
+function run_tb() {
+  server_start
+  fw_start
+  client_start
+  sleep 20
+  client_stop
+  sleep 1
+  client_tb
+  fw_stop
+  server_stop
 }
