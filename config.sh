@@ -49,7 +49,6 @@ NETDEV_DN=$(NETDEV_FROM_IF $IF_DN)
 NETDEV_UP=$(NETDEV_FROM_IF $IF_UP)
 
 HUGE1G_NPAGES=192
-
 CPU_CLI=17,18,19,20,21
 MEM_CLI=0,2048
 CPU_SVR=12,13,14,15,16
@@ -67,6 +66,8 @@ CMD_NDNPING=$(which ndnping-dpdk)
 
 PREFIXES='/U/A /U/B /U/C /U/D /U/E /U/F'
 FW_NFWS=6
+CLI_INTERVAL=10us
+RUNTB_WARMUP=20
 
 if [[ -f config-override.sh ]]; then
   source config-override.sh

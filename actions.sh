@@ -1,5 +1,13 @@
 mkdir -p runtime
 
+function process_stop() {
+  local PATTERN=$1
+  while pgrep -f "$PATTERN" >/dev/null; do
+    sudo pkill -f "$PATTERN"
+    sleep 0.5
+  done
+}
+
 function fw_start() {
   if ! [[ -f runtime/fw.init-config.yaml ]]; then
     cp init-config.yaml runtime/fw.init-config.yaml
@@ -17,15 +25,15 @@ function fw_start() {
 
   local I=0
   for PREFIX in $PREFIXES; do
-    $CMD_MGMTCMD fib insert $PREFIX $NEXTHOP
-    $CMD_MGMTCMD ndt updaten $PREFIX $I
+    $CMD_MGMTCMD fib insert $PREFIX $NEXTHOP >/dev/null
+    $CMD_MGMTCMD ndt updaten $PREFIX $I >/dev/null
     I=$((I+1))
     if [[ $I -ge $FW_NFWS ]]; then I=0; fi
   done
 }
 
 function fw_stop() {
-  sudo pkill -f '\--file-prefix fw '
+  process_stop '\--file-prefix fw '
   rm -f runtime/faceid-dn.txt runtime/faceid-up.txt
 }
 
@@ -55,7 +63,7 @@ function server_start() {
 }
 
 function server_stop() {
-  sudo pkill -f '\--file-prefix server '
+  process_stop '\--file-prefix server '
 }
 
 function client_prepare() {
@@ -69,7 +77,7 @@ function client_prepare() {
     local: '$LOCAL_CLI'
   client:
     patterns: []
-    interval: 10us
+    interval: '$CLI_INTERVAL'
 ' >runtime/client.tasks.yaml
   for PREFIX in $PREFIXES; do
     $CMD_YAMLEDIT -f runtime/client.tasks.yaml -aj 0.client.patterns '{ prefix: '$PREFIX' }'
@@ -80,10 +88,13 @@ function client_start() {
   client_prepare
 
   sudo $CMD_NDNPING -l $CPU_CLI --socket-mem $MEM_CLI --file-prefix client -w $IF_CLI -- -initcfg @runtime/client.init-config.yaml -cnt 1s -tasks=@runtime/client.tasks.yaml &>runtime/client.log &
+  while ! grep -E 'samp\)' runtime/client.log >/dev/null; do
+    sleep 0.5
+  done
 }
 
 function client_stop() {
-  sudo pkill -f '\--file-prefix client '
+  process_stop '\--file-prefix client '
 }
 
 function client_tb() {
@@ -114,7 +125,7 @@ function run_tb() {
   server_start
   fw_start
   client_start
-  sleep 20
+  sleep $RUNTB_WARMUP
   client_stop
   sleep 1
   client_tb
