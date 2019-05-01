@@ -8,10 +8,19 @@ function process_stop() {
   done
 }
 
-function fw_start() {
-  if ! [[ -f runtime/fw.init-config.yaml ]]; then
-    cp init-config.yaml runtime/fw.init-config.yaml
+function copy_initconfig() {
+  local OUTPUT=runtime/$1.init-config.yaml
+  if ! [[ -f $OUTPUT ]]; then
+    if [[ -f runtime/init-config.yaml ]]; then
+      cp runtime/init-config.yaml $OUTPUT
+    else
+      cp init-config.yaml $OUTPUT
+    fi
   fi
+}
+
+function fw_start() {
+  copy_initconfig fw
 
   sudo $CMD_NDNFW -l $CPU_FW --socket-mem $MEM_FW --file-prefix fw -w $IF_DN -w $IF_UP -- -initcfg @runtime/fw.init-config.yaml &>runtime/fw.log &
 
@@ -38,9 +47,7 @@ function fw_stop() {
 }
 
 function server_start() {
-  if ! [[ -f runtime/server.init-config.yaml ]]; then
-    cp init-config.yaml runtime/server.init-config.yaml
-  fi
+  copy_initconfig server
 
   local PAYLOADLEN=1000
   if [[ -f runtime/server-payloadlen.txt ]]; then
@@ -58,7 +65,7 @@ function server_start() {
     nack: true
 ' >runtime/server.tasks.yaml
   for PREFIX in $PREFIXES; do
-  $CMD_YAMLEDIT -f runtime/server.tasks.yaml -aj 0.server.patterns '{ prefix: '$PREFIX' , payloadlen: '$PAYLOADLEN' }'
+    $CMD_YAMLEDIT -f runtime/server.tasks.yaml -aj 0.server.patterns '{ prefix: '$PREFIX' , payloadlen: '$PAYLOADLEN' }'
   done
 
   sudo $CMD_NDNPING -l $CPU_SVR --socket-mem $MEM_SVR --file-prefix server -w $IF_SVR -- -initcfg @runtime/server.init-config.yaml -cnt 0 -tasks=@runtime/server.tasks.yaml &>runtime/server.log &
@@ -69,9 +76,7 @@ function server_stop() {
 }
 
 function client_prepare() {
-  if ! [[ -f runtime/client.init-config.yaml ]]; then
-    cp init-config.yaml runtime/client.init-config.yaml
-  fi
+  copy_initconfig client
 
   echo '
 - face:
@@ -104,9 +109,14 @@ function client_stop() {
 function client_tb() {
   client_prepare
 
+  local INTERVALMAX=2500ns
+  if [[ -f runtime/tb-intervalmax.txt ]]; then
+    INTERVALMAX=$(cat runtime/tb-intervalmax.txt)
+  fi
+
   echo '
 intervalmin: 500ns
-intervalmax: 2500ns
+intervalmax: '$INTERVALMAX'
 intervalstep: 1ns
 
 txcount: 24000000
