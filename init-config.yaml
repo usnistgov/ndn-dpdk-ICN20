@@ -22,6 +22,7 @@ mempool:
     capacity: 65535
     cachesize: 255
     dataroomsize: 9000
+lcorealloc: null
 face:
   enableeth: true
   ethdisablerxflow: false
@@ -39,11 +40,9 @@ fib:
   nbuckets: 256
   startdepth: 8
 fwdp:
-  inputlcores: [1, 2]
-  cryptolcores: [5]
-  fwdlcores: [6, 7, 8, 9, 10, 11]
-  fwdqueuecapacity: 256
+  fwdqueuecapacity: 128
   latencysamplefreq: 16
-  pcctcapacity: 524287
-  cscapmd: 65536
-  cscapmi: 65536
+  pcctcapacity: 131071
+  cscapmd: 32768
+  cscapmi: 32768
+  autofaces: false
