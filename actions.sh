@@ -65,7 +65,13 @@ function server_start() {
     nack: true
 ' >runtime/server.tasks.yaml
   for PREFIX in $PREFIXES; do
-    $CMD_YAMLEDIT -f runtime/server.tasks.yaml -aj 0.server.patterns '{ prefix: '$PREFIX' , payloadlen: '$PAYLOADLEN' }'
+    $CMD_YAMLEDIT -f runtime/server.tasks.yaml -aj 0.server.patterns "$(
+      echo '{}' | \
+      $CMD_YAMLEDIT prefix $PREFIX |\
+      $CMD_YAMLEDIT -j replies '[]' |\
+      $CMD_YAMLEDIT replies.0.freshnessperiod 8000ms |\
+      $CMD_YAMLEDIT -n replies.0.payloadlen $PAYLOADLEN
+    )"
   done
 
   sudo $CMD_NDNPING -l $CPU_SVR --socket-mem $MEM_SVR --file-prefix server -w $IF_SVR -- -initcfg @runtime/server.init-config.yaml -cnt 0 -tasks=@runtime/server.tasks.yaml &>runtime/server.log &
@@ -89,7 +95,11 @@ function client_prepare() {
     interval: '$CLI_INTERVAL'
 ' >runtime/client.tasks.yaml
   for PREFIX in $PREFIXES; do
-    $CMD_YAMLEDIT -f runtime/client.tasks.yaml -aj 0.client.patterns '{ prefix: '$PREFIX' }'
+    $CMD_YAMLEDIT -f runtime/client.tasks.yaml -aj 0.client.patterns "$(
+      echo '{}' | \
+      $CMD_YAMLEDIT prefix $PREFIX |\
+      $CMD_YAMLEDIT -j mustbefresh 'true'
+    )"
   done
 }
 
