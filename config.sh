@@ -45,6 +45,7 @@ CMD_MGMTPROXY=$SRC_ROOT/build/mgmtproxy.sh
 CMD_CREATEFACE='nodejs '$SRC_ROOT'/build/cmd/mgmtclient/create-face'
 CMD_NDNFW=$(which ndnfw-dpdk)
 CMD_NDNPING=$(which ndnping-dpdk)
+CMD_NFDEMU='nodejs '$SRC_ROOT'/build/cmd/nfdemu/'
 
 PREFIXES='/U/A /U/B /U/C /U/D /U/E /U/F'
 FW_NFWS=6
