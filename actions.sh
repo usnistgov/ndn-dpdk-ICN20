@@ -1,5 +1,9 @@
 mkdir -p runtime
 
+function remote_fw_act() {
+  ssh $SSH_FW bash --login $(pwd)/remote-act.sh "$@"
+}
+
 function process_stop() {
   local PATTERN=$1
   while pgrep -f "$PATTERN" >/dev/null; do
@@ -22,6 +26,13 @@ function copy_initconfig() {
 function fw_start() {
   copy_initconfig fw
 
+  if [[ $(hostname -s) != $HOST_FW ]]; then
+    rsync -W runtime/fw.init-config.yaml $SSH_FW:$(pwd)/runtime/
+    remote_fw_act fw_start
+    rsync -W $SSH_FW:$(pwd)/runtime/version.txt runtime/
+    return
+  fi
+
   sudo $CMD_NDNFW -l $CPU_FW --socket-mem $MEM_FW --file-prefix fw -w $IF_DN -w $IF_UP -- -initcfg @runtime/fw.init-config.yaml &>runtime/fw.log &
 
   while ! $CMD_MGMTCMD version &>runtime/version.txt; do
@@ -42,6 +53,12 @@ function fw_start() {
 }
 
 function fw_stop() {
+  if [[ $(hostname -s) != $HOST_FW ]]; then
+    remote_fw_act fw_stop
+    rsync -W $SSH_FW:$(pwd)/runtime/fw.log runtime/
+    return
+  fi
+
   process_stop '\--file-prefix fw '
   rm -f runtime/faceid-dn.txt runtime/faceid-up.txt
 }
