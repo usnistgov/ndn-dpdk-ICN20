@@ -21,6 +21,8 @@ CMD_NFDEMU='nodejs '$SRC_ROOT'/build/cmd/nfdemu/'
 PREFIXES='/U/A /U/B /U/C /U/D /U/E /U/F'
 FW_NFWS=6
 CLI_INTERVAL=10us
+TB_INTERVALMIN=500ns
+TB_INTERVALMAX=2500ns
 RUNTB_WARMUP=20
 
 if [[ -f config-override.sh ]]; then

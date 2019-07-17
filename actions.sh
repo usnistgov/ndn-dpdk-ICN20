@@ -1,7 +1,7 @@
 mkdir -p runtime
 
 function remote_fw_act() {
-  ssh $SSH_FW bash --login $(pwd)/remote-act.sh "$@"
+  ssh -n $SSH_FW bash --login $(pwd)/remote-act.sh "$@"
 }
 
 function process_stop() {
@@ -136,14 +136,9 @@ function client_stop() {
 function client_tb() {
   client_prepare
 
-  local INTERVALMAX=2500ns
-  if [[ -f runtime/tb-intervalmax.txt ]]; then
-    INTERVALMAX=$(cat runtime/tb-intervalmax.txt)
-  fi
-
   echo '
-intervalmin: 500ns
-intervalmax: '$INTERVALMAX'
+intervalmin: '$TB_INTERVALMIN'
+intervalmax: '$TB_INTERVALMAX'
 intervalstep: 1ns
 
 txcount: 24000000

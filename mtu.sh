@@ -18,9 +18,6 @@ while read -r -a ROW; do
       | $CMD_YAMLEDIT -n mempool.DATA.dataroomsize $((ROW[1]+512)) \
       >runtime/init-config.yaml
     echo ${ROW[1]} >runtime/server-payloadlen.txt
-    if [[ ${ROW[0]} -lt ${ROW[1]} ]]; then
-      echo 5000ns >runtime/tb-intervalmax.txt
-    fi
 
     run_tb
     pushd runtime >/dev/null; tar cJf ../$OUTFILE *; popd >/dev/null
