@@ -33,22 +33,22 @@ function fw_start() {
     return
   fi
 
-  sudo $CMD_NDNFW -l $CPU_FW --socket-mem $MEM_FW --file-prefix fw -w $IF_DN -w $IF_UP -- -initcfg @runtime/fw.init-config.yaml &>runtime/fw.log &
+  sudo MGMT=tcp://127.0.0.1:6345 $CMD_NDNFW -l $CPU_FW --socket-mem $MEM_FW --file-prefix fw -w $IF_FW0 -w $IF_FW1 -w $IF_FW2 -- -initcfg @runtime/fw.init-config.yaml &>runtime/fw.log &
 
   while ! $CMD_MGMTCMD version &>runtime/version.txt; do
     sleep 0.5
   done
 
-  $CMD_CREATEFACE --scheme ether --port $IF_DN --local $LOCAL_DN --remote $REMOTE_DN >runtime/faceid-dn.txt
-  $CMD_CREATEFACE --scheme ether --port $IF_UP --local $LOCAL_UP --remote $REMOTE_UP >runtime/faceid-up.txt
-  local NEXTHOP=$(cat runtime/faceid-up.txt)
-
-  local I=0
-  for PREFIX in $PREFIXES; do
-    $CMD_MGMTCMD fib insert $PREFIX $NEXTHOP >/dev/null
-    $CMD_MGMTCMD ndt updaten $PREFIX $I >/dev/null
-    I=$((I+1))
-    if [[ $I -ge $FW_NFWS ]]; then I=0; fi
+  $CMD_CREATEFACE --scheme ether --port $IF_FW0 --local 02:01:00:00:00:02 --remote 01:00:5e:00:17:aa >runtime/faceid-A.txt
+  $CMD_CREATEFACE --scheme ether --port $IF_FW1 --local 02:02:00:00:00:02 --remote 01:00:5e:00:17:aa >runtime/faceid-B.txt
+  $CMD_CREATEFACE --scheme ether --port $IF_FW2 --local 02:03:00:00:00:02 --remote 01:00:5e:00:17:aa >runtime/faceid-C.txt
+  for FACENAME in A B C; do
+    local NEXTHOP=$(cat runtime/faceid-$FACENAME.txt)
+    for I in $(seq 0 $((NPATTERNS-1))); do
+      local PREFIX=/$FACENAME/$I
+      $CMD_MGMTCMD ndt updaten $PREFIX $I >/dev/null
+      $CMD_MGMTCMD fib insert $PREFIX $NEXTHOP >/dev/null
+    done
   done
 }
 
@@ -60,111 +60,74 @@ function fw_stop() {
   fi
 
   process_stop '\--file-prefix fw '
-  rm -f runtime/faceid-dn.txt runtime/faceid-up.txt
+  rm -f runtime/faceid-?.txt
 }
 
-function server_start() {
-  copy_initconfig server
+function topo2dirs() {
+  local TOPO=$1
+  case $TOPO in
+  single)
+    echo '[AB]'
+    ;;
+  bidirection)
+    echo '[AB,BA]'
+    ;;
+  circle)
+    echo '[AB,BC,CA]'
+    ;;
+  all)
+    echo '[AB,BC,CA,AC,CB,BA]'
+    ;;
+  esac
+}
 
-  local PAYLOADLEN=1000
-  if [[ -f runtime/server-payloadlen.txt ]]; then
-    PAYLOADLEN=$(cat runtime/server-payloadlen.txt)
-  fi
+function gen_start() {
+  copy_initconfig gen
+
+  local DIRS=$(topo2dirs $TOPO)
 
   echo '
-- face:
-    scheme: ether
-    port: "'$IF_SVR'"
-    local: "'$LOCAL_SVR'"
-    remote: "'$REMOTE_SVR'"
-  server:
-    patterns: []
-    nack: true
-' >runtime/server.tasks.yaml
-  for PREFIX in $PREFIXES; do
-    $CMD_YAMLEDIT -f runtime/server.tasks.yaml -aj 0.server.patterns "$(
-      echo '{}' | \
-      $CMD_YAMLEDIT prefix $PREFIX |\
-      $CMD_YAMLEDIT -j replies '[]' |\
-      $CMD_YAMLEDIT replies.0.freshnessperiod 8000ms |\
-      $CMD_YAMLEDIT -n replies.0.payloadlen $PAYLOADLEN
-    )"
-  done
+faces:
+- Scheme: ether
+  Port: "'$IF_GEN0'"
+  Local: "02:01:00:00:00:01"
+  Remote: "01:00:5e:00:17:aa"
+- Scheme: ether
+  Port: "'$IF_GEN1'"
+  Local: "02:02:00:00:00:01"
+  Remote: "01:00:5e:00:17:aa"
+- Scheme: ether
+  Port: "'$IF_GEN2'"
+  Local: "02:03:00:00:00:01"
+  Remote: "01:00:5e:00:17:aa"
+dirs: '$DIRS'
+nPatterns: '$NPATTERNS'
+interestNameLen: '$INTERESTNAMELEN'
+dataSuffixLen: '$DATASUFFIXLEN'
+payloadLen: '$PAYLOADLEN'
+' >runtime/gen.input.yaml
+  nodejs build/make-ndnping-config <runtime/gen.input.yaml >runtime/gen.tasks.yaml
 
-  sudo $CMD_NDNPING -l $CPU_SVR --socket-mem $MEM_SVR --file-prefix server -w $IF_SVR -- -initcfg @runtime/server.init-config.yaml -cnt 0 -tasks=@runtime/server.tasks.yaml &>runtime/server.log &
-}
+  sudo MGMT=tcp://127.0.0.1:6345 $CMD_NDNPING -l $CPU_GEN --socket-mem $MEM_GEN --file-prefix gen -w $IF_GEN0 -w $IF_GEN1 -w $IF_GEN2 -- -initcfg @runtime/gen.init-config.yaml -cnt 1s -tasks=@runtime/gen.tasks.yaml &>runtime/gen.log &
 
-function server_stop() {
-  process_stop '\--file-prefix server '
-}
-
-function client_prepare() {
-  copy_initconfig client
-
-  echo '
-- face:
-    scheme: ether
-    port: "'$IF_CLI'"
-    local: "'$LOCAL_CLI'"
-    remote: "'$REMOTE_CLI'"
-  client:
-    patterns: []
-    interval: '$CLI_INTERVAL'
-' >runtime/client.tasks.yaml
-  for PREFIX in $PREFIXES; do
-    $CMD_YAMLEDIT -f runtime/client.tasks.yaml -aj 0.client.patterns "$(
-      echo '{}' | \
-      $CMD_YAMLEDIT prefix $PREFIX |\
-      $CMD_YAMLEDIT -j mustbefresh 'true'
-    )"
-  done
-}
-
-function client_start() {
-  client_prepare
-
-  sudo $CMD_NDNPING -l $CPU_CLI --socket-mem $MEM_CLI --file-prefix client -w $IF_CLI -- -initcfg @runtime/client.init-config.yaml -cnt 1s -tasks=@runtime/client.tasks.yaml &>runtime/client.log &
-  while ! grep -E 'samp\)' runtime/client.log >/dev/null; do
+  while ! $CMD_MGMTCMD version &>/dev/null; do
     sleep 0.5
   done
 }
 
-function client_stop() {
-  process_stop '\--file-prefix client '
+function gen_stop() {
+  process_stop '\--file-prefix gen '
 }
 
-function client_tb() {
-  client_prepare
-
-  echo '
-intervalmin: '$TB_INTERVALMIN'
-intervalmax: '$TB_INTERVALMAX'
-intervalstep: 1ns
-
-txcount: 24000000
-txdurationmin: 15s
-txdurationmax: 60s
-
-warmuptime: 5s
-cooldowntime: 2s
-readcountersfreq: 100ms
-
-satisfythreshold: 0.999
-retestthreshold: 0.950
-retestcount: 1
-' >runtime/tb.yaml
-
-  sudo LOG_ThroughputBenchmark=V $CMD_NDNPING -l $CPU_CLI --socket-mem $MEM_CLI --file-prefix client -w $IF_CLI -- -initcfg @runtime/client.init-config.yaml -cnt 0 -tasks=@runtime/client.tasks.yaml -throughput-benchmark=@runtime/tb.yaml 2>runtime/tb.log >runtime/tb.out
+function msibench_exec() {
+  DEBUG='*' $CMD_MSIBENCH --IntervalMin $MSI_INTERVALMIN --IntervalMax $MSI_INTERVALMAX --DesiredUncertainty $MSI_UNCERTAINTY 2>runtime/msibench.log >runtime/msibench.out
 }
 
-function run_tb() {
-  server_start
+function run_msibench() {
   fw_start
-  client_start
-  sleep $RUNTB_WARMUP
-  client_stop
-  sleep 1
-  client_tb
+  gen_start
+  sleep 10
+  msibench_exec
+  gen_stop
   fw_stop
-  server_stop
 }

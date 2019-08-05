@@ -18,9 +18,12 @@ mempool:
   INT:
     capacity: 65535
     cachesize: 255
-  DATA:
+  DATA0:
     capacity: 65535
     cachesize: 255
+  DATA1:
+    capacity: 255
+    cachesize: 0
     dataroomsize: 9000
 lcorealloc: null
 face:

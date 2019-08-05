@@ -1,4 +1,6 @@
+build
 env.sh
 config-override.sh
+node_modules
 runtime
 output

@@ -15,15 +15,18 @@ while read -r -a ROW; do
     cat init-config.yaml \
       | $CMD_YAMLEDIT -n face.ethmtu ${ROW[0]} \
       | $CMD_YAMLEDIT -n mempool.ETHRX.dataroomsize $((ROW[0]+128)) \
-      | $CMD_YAMLEDIT -n mempool.DATA.dataroomsize $((ROW[1]+512)) \
+      | $CMD_YAMLEDIT -n mempool.DATA1.dataroomsize $((ROW[1]+1024)) \
       >runtime/init-config.yaml
-    echo ${ROW[1]} >runtime/server-payloadlen.txt
 
-    run_tb
+    PAYLOADLEN=${ROW[1]}
+    run_msibench
+
     pushd runtime >/dev/null; tar cJf ../$OUTFILE *; popd >/dev/null
   fi
 
-  echo ${ROW[*]}
-  tar xOf $OUTFILE tb.out | tail -2
-  echo
+  RESULTJSON=$(tar xOf $OUTFILE msibench.out | tail -1)
+  echo ${ROW[*]} \
+       $(echo $RESULTJSON | nodejs build/json-get mean) \
+       $(echo $RESULTJSON | nodejs build/json-get stdev) \
+       $(echo $RESULTJSON | nodejs build/json-get count)
 done <mtu.tsv >output/mtu.txt
