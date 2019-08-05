@@ -4,7 +4,7 @@ source config.sh
 source actions.sh
 
 function nfd_start() {
-  CSCAP=$1
+  local CSCAP=$1
   sudo infoedit -f /etc/ndn/nfd.conf -s tables.cs_max_packets -v $CSCAP
   sudo systemctl start nfd
 }
@@ -14,13 +14,15 @@ function nfd_stop() {
 }
 
 function nfdemu_start() {
-  NWORKERS=$1
+  local NWORKERS=$1
 
   cat init-config.yaml \
+    | $CMD_YAMLEDIT -n mempool.ETHRX.capacity 524287 \
+    | $CMD_YAMLEDIT -n mempool.ETHRX.cachesize 512 \
     | $CMD_YAMLEDIT -j face.enableeth false \
     | $CMD_YAMLEDIT -j face.enablesock true \
-    | $CMD_YAMLEDIT -n face.socktxqpkts 256 \
-    | $CMD_YAMLEDIT -n face.socktxqframes 1024 \
+    | $CMD_YAMLEDIT -n face.socktxqpkts 1024 \
+    | $CMD_YAMLEDIT -n face.socktxqframes 4096 \
     | $CMD_YAMLEDIT -n face.chanrxgframes 4096 \
   > runtime/fw.init-config.yaml
 
@@ -34,7 +36,7 @@ function nfdemu_start() {
 }
 
 function nfdemu_stop() {
-  process_stop nfdemu
+  process_stop cmd/nfdemu
   fw_stop
 }
 
@@ -46,13 +48,19 @@ fi
 PREFIX1=/P$RANDOM
 
 function putchunks_start() {
-  NAME=$1
+  local NAME=$1
+  local FWD_ID=$2
+
   PREFIX=$PREFIX1/$NAME/%FD%01
   ndnputchunks $PREFIX <$PUTCHUNKS_INPUT &>runtime/putchunks-$NAME.log &
+
+  if [[ $ACT == nfdemu-* ]]; then
+    $CMD_MGMTCMD ndt updaten $PREFIX $FWD_ID >/dev/null
+  fi
 }
 
 function putchunks_waitready() {
-  NAME=$1
+  local NAME=$1
   while ! grep 'Data published with name:' runtime/putchunks-$NAME.log >/dev/null; do
     sleep 0.5
   done
@@ -63,8 +71,8 @@ function putchunks_stopall() {
 }
 
 function catchunks_start() {
-  NAME=$1
-  COND=$2
+  local NAME=$1
+  local COND=$2
   PREFIX=$PREFIX1/$NAME/%FD%01
   ndncatchunks $PREFIX >/dev/null 2>runtime/catchunks-$COND-$NAME.log &
 }
@@ -108,8 +116,11 @@ nfdemu-1)
 esac
 
 sleep 1
+
+FWD_ID=0
 for NAME in A B C D E F; do
-  putchunks_start $NAME
+  putchunks_start $NAME $FWD_ID
+  FWD_ID=$((FWD_ID+1))
 done
 for NAME in A B C D E F; do
   putchunks_waitready $NAME
