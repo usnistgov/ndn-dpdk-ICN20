@@ -1,6 +1,7 @@
 build
 env.sh
 config-override.sh
+init-config.yaml
 node_modules
 runtime
 output

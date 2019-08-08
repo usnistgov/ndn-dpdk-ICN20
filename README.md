@@ -1,7 +1,7 @@
 # NDN-DPDK benchmarks
 
 The benchmark requires two machines, connected like this diagram.
-Write environment config in `env.sh`, and invoke all scripts on traffic generator machine.
+Write configs in `env.sh` and `init-config.yaml`, and invoke all scripts on traffic generator machine.
 
 ```
 -------------

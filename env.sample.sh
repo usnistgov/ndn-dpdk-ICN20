@@ -3,19 +3,15 @@
 # SSH hostname
 HOST_FW=fwhost
 SSH_FW=fwhost
+NO_RSYNC=0 # set to 1 to disable rsync and assume NFS
 
-# PCI address of network interfaces
+# PCI address or ifname or IPv4 address of network interfaces
 IF_GEN0=01:00.0
 IF_GEN1=02:00.0
 IF_GEN2=03:00.0
 IF_FW0=01:00.0
 IF_FW1=02:00.0
 IF_FW2=03:00.0
-
-IF_CLI=01:00.0
-IF_SVR=02:00.0
-IF_DN=03:00.0
-IF_UP=04:00.0
 
 # CPU and memory allocation
 HUGE1G_NPAGES=192

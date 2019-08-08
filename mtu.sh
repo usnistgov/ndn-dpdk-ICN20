@@ -12,9 +12,11 @@ while read -r -a ROW; do
 
   if ! [[ -f $OUTFILE ]]; then
     rm -f runtime/*
+    ETHRX_DATAROOM=$((ROW[0]+128))
+    if [[ $ETHRX_DATAROOM -lt 2200 ]]; then ETHRX_DATAROOM=2200; fi
     cat init-config.yaml \
       | $CMD_YAMLEDIT -n face.ethmtu ${ROW[0]} \
-      | $CMD_YAMLEDIT -n mempool.ETHRX.dataroomsize $((ROW[0]+128)) \
+      | $CMD_YAMLEDIT -n mempool.ETHRX.dataroomsize $ETHRX_DATAROOM \
       | $CMD_YAMLEDIT -n mempool.DATA1.dataroomsize $((ROW[1]+1024)) \
       >runtime/init-config.yaml
 

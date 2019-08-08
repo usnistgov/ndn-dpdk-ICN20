@@ -49,6 +49,8 @@ interface Args {
   faces: iface.Locator[];
   // traffic direction, example: ["AB", "BC", "CA"]
   dirs: string[];
+  // initial Interest interval (nanos)
+  interval: number;
   // number of patterns per traffic direction
   nPatterns: number;
   // Interest name length including sequence number, minimum 4
@@ -72,7 +74,7 @@ function makeNdnpingConfig(a: Args): ndnping.AppConfig {
     const client = cfg[td.clientIndex].Client =
       cfg[td.clientIndex].Client || {
         Patterns: [],
-        Interval: 2000,
+        Interval: a.interval,
       } as ndnping.ClientConfig;
 
     for (let i = 0; i < a.nPatterns; ++i) {
