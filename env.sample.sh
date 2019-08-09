@@ -20,6 +20,8 @@ MEM_GEN=4096,0
 CPU_FW=0-11
 MEM_FW=16384,0
 
-# CPU isolation: CPU for other processes, empty to disable
+# CPU isolation, 'B' for benchmark, 'O' for other (empty to disable)
+CPUSET_B_GEN=$CPU_GEN
 CPUSET_O_GEN=12-23
+CPUSET_B_FW=$CPU_FW
 CPUSET_O_FW=12-23

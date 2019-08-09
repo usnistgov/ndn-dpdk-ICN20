@@ -17,4 +17,3 @@ done
 
 sudo modprobe ib_uverbs
 
-sudo $CMD_MGMTPROXY start

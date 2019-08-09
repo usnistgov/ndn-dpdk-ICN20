@@ -5,3 +5,4 @@ init-config.yaml
 node_modules
 runtime
 output
+package-lock.json
