@@ -121,6 +121,11 @@ function topo2dirs() {
 }
 
 function gen_start() {
+  if [[ -n $CPUSET_O_GEN ]] && [[ $IN_REMOTE_ACT -ne 1 ]]; then
+    bash remote-act.sh gen_start
+    exit
+  fi
+
   copy_initconfig gen
 
   local DIRS=$(topo2dirs $TOPO)
@@ -160,6 +165,7 @@ payloadLen: '$PAYLOADLEN'
 
 function gen_stop() {
   process_stop '\--file-prefix gen '
+  sudo bash cpuset.sh 0
 }
 
 function msibench_exec() {
