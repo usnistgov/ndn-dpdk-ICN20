@@ -3,6 +3,8 @@ cd "$( dirname "${BASH_SOURCE[0]}" )"
 source config.sh
 source actions.sh
 
+export NO_REMOTE_ACT=1
+
 function nfd_start() {
   local CSCAP=$1
   sudo infoedit -f /etc/ndn/nfd.conf -s tables.cs_max_packets -v $CSCAP
@@ -19,6 +21,7 @@ function nfdemu_start() {
   cat init-config.yaml \
     | $CMD_YAMLEDIT -n mempool.ETHRX.capacity 524287 \
     | $CMD_YAMLEDIT -n mempool.ETHRX.cachesize 512 \
+    | $CMD_YAMLEDIT -n mempool.ETHRX.dataroomsize 5000 \
     | $CMD_YAMLEDIT -j face.enableeth false \
     | $CMD_YAMLEDIT -j face.enablesock true \
     | $CMD_YAMLEDIT -n face.socktxqpkts 1024 \
@@ -26,11 +29,7 @@ function nfdemu_start() {
     | $CMD_YAMLEDIT -n face.chanrxgframes 4096 \
   > runtime/fw.init-config.yaml
 
-  sudo $CMD_NDNFW -l $CPU_FW --socket-mem $MEM_FW --file-prefix fw -- -initcfg @runtime/fw.init-config.yaml &>runtime/fw.log &
-
-  while ! $CMD_MGMTCMD version &>runtime/version.txt; do
-    sleep 0.5
-  done
+  FW_NO_FACES=1 fw_start
 
   $CMD_NFDEMU -v -w $NWORKERS &>runtime/nfdemu.log &
 }

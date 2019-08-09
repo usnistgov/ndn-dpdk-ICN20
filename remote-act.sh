@@ -3,7 +3,7 @@ cd "$( dirname "${BASH_SOURCE[0]}" )"
 source config.sh
 source actions.sh
 
-export IN_REMOTE_ACT=1
+export NO_REMOTE_ACT=1
 
 ACT=$1
 case $ACT in

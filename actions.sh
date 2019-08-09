@@ -59,21 +59,29 @@ function copy_initconfig() {
 function fw_start() {
   copy_initconfig fw
 
-  if [[ $(hostname -s) != $HOST_FW ]]; then
+  if [[ $(hostname -s) != $HOST_FW ]] && [[ $NO_REMOTE_ACT -ne 1 ]]; then
     do_rsync runtime/fw.init-config.yaml $SSH_FW:$(pwd)/runtime/
     remote_fw_act fw_start
     do_rsync $SSH_FW:$(pwd)/runtime/version.txt runtime/
     return
   fi
 
+  local FW_FACES=''
+  if [[ $FW_NO_FACES -ne 1 ]]; then
+    FW_FACES="$(if_whitelist $IF_FW0 0) $(if_whitelist $IF_FW1 1) $(if_whitelist $IF_FW2 2)"
+  fi
+
   sudo MGMT=tcp://127.0.0.1:6345 $CMD_NDNFW \
-    -l $CPU_FW --socket-mem $MEM_FW --file-prefix fw \
-    $(if_whitelist $IF_FW0 0) $(if_whitelist $IF_FW1 1) $(if_whitelist $IF_FW2 2) \
+    -l $CPU_FW --socket-mem $MEM_FW --file-prefix fw $FW_FACES \
     -- -initcfg @runtime/fw.init-config.yaml &>runtime/fw.log &
 
   while ! $CMD_MGMTCMD version &>runtime/version.txt; do
     sleep 0.5
   done
+
+  if [[ $FW_NO_FACES -eq 1 ]]; then
+    return
+  fi
 
   $CMD_CREATEFACE --scheme ether --port $(if_port $IF_FW0 0) \
                   --local 02:00:00:00:00:02 --remote 01:00:5e:00:17:aa >runtime/faceid-A.txt
@@ -92,7 +100,7 @@ function fw_start() {
 }
 
 function fw_stop() {
-  if [[ $(hostname -s) != $HOST_FW ]]; then
+  if [[ $(hostname -s) != $HOST_FW ]] && [[ $NO_REMOTE_ACT -ne 1 ]]; then
     remote_fw_act fw_stop
     do_rsync $SSH_FW:$(pwd)/runtime/fw.log runtime/
     return
@@ -121,7 +129,7 @@ function topo2dirs() {
 }
 
 function gen_start() {
-  if [[ -n $CPUSET_O_GEN ]] && [[ $IN_REMOTE_ACT -ne 1 ]]; then
+  if [[ -n $CPUSET_O_GEN ]] && [[ $NO_REMOTE_ACT -ne 1 ]]; then
     bash remote-act.sh gen_start
     return
   fi
