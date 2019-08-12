@@ -20,6 +20,7 @@ MSI_INTERVALMIN=500
 MSI_INTERVALMAX=2500
 MSI_INTERVALSTEP=1
 MSI_UNCERTAINTY=10
+MSI_HINTNEARBY=100
 
 if [[ -f config-override.sh ]]; then
   source config-override.sh

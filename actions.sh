@@ -177,7 +177,7 @@ function gen_stop() {
 }
 
 function msibench_exec() {
-  DEBUG='*' $CMD_MSIBENCH --IntervalMin $MSI_INTERVALMIN --IntervalMax $MSI_INTERVALMAX --IntervalStep $MSI_INTERVALSTEP --DesiredUncertainty $MSI_UNCERTAINTY 2>runtime/msibench.log >runtime/msibench.out
+  DEBUG='*' $CMD_MSIBENCH --IntervalMin $MSI_INTERVALMIN --IntervalMax $MSI_INTERVALMAX --IntervalStep $MSI_INTERVALSTEP --DesiredUncertainty $MSI_UNCERTAINTY --IntervalNearby $MSI_HINTNEARBY 2>runtime/msibench.log >runtime/msibench.out
 }
 
 function run_msibench() {
