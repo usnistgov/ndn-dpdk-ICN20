@@ -125,6 +125,9 @@ function topo2dirs() {
   all)
     echo '[AB,BC,CA,AC,CB,BA]'
     ;;
+  *)
+    echo $TOPO
+    ;;
   esac
 }
 
