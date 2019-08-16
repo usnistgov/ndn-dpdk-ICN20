@@ -41,11 +41,12 @@ ndt:
 fib:
   maxentries: 65535
   nbuckets: 256
-  startdepth: 8
+  startdepth: 4
 fwdp:
   fwdqueuecapacity: 128
   latencysamplefreq: 16
   pcctcapacity: 131071
   cscapmd: 32768
   cscapmi: 32768
-  autofaces: false
+ping:
+  queuecapacity: 256
