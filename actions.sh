@@ -66,6 +66,17 @@ function fw_start() {
     return
   fi
 
+  if [[ -n $FW_TESTPMD ]]; then
+    local IF0 IF1
+    read -r IF0 IF1 <<< "$FW_TESTPMD"
+    sudo $CMD_TESTPMD -l $CPU_FW --socket-mem $MEM_FW --file-prefix fw \
+         $(if_whitelist $IF0 0) $(if_whitelist $IF1 1) \
+         $(ls /usr/local/lib/librte_*.so | sed 's|^|-d |') \
+         -- --auto-start --stats-period 1 &>runtime/fw.log &
+    echo TESTPMD >runtime/version.txt
+    return
+  fi
+
   local FW_FACES=''
   if [[ $FW_NO_FACES -ne 1 ]]; then
     FW_FACES="$(if_whitelist $IF_FW0 0) $(if_whitelist $IF_FW1 1) $(if_whitelist $IF_FW2 2)"
