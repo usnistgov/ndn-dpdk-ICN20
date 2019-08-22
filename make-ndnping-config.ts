@@ -104,14 +104,13 @@ function makeNdnpingConfig(a: Args): ndnping.AppConfig {
     }
   });
 
-  for (let [serverName, serverIndex] of Object.entries(needServers)) {
+  for (const [serverName, serverIndex] of Object.entries(needServers)) {
     const server = cfg[serverIndex].Server = {
       Patterns: [],
       Nack: true,
     } as ndnping.ServerConfig;
     for (let i = 0; i < a.nPatterns; ++i) {
-      const prefix = util.format("/%s/%d%s", serverName, i,
-                                 "/-".repeat(Math.max(0, a.interestNameLen - 4)));
+      const prefix = util.format("/%s/%d", serverName, i);
       const suffix = "/_".repeat(a.dataSuffixLen);
       // https://github.com/palantir/tslint/issues/3586
       // tslint:disable:object-literal-sort-keys
@@ -140,8 +139,8 @@ function keys2LowerCase(input: any): any {
   if (typeof input === "object") {
     return Object.fromEntries(
       Object.entries(input).map(
-        ([k, v]: [string, any]) => [k.toLowerCase(), keys2LowerCase(v)]
-      )
+        ([k, v]: [string, any]) => [k.toLowerCase(), keys2LowerCase(v)],
+      ),
     );
   }
   return input;
