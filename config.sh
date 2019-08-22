@@ -13,6 +13,8 @@ CMD_NFDEMU='nodejs '$SRC_ROOT'/build/cmd/nfdemu/'
 # override to bridge two ports with DPDK testpmd in place of forwarder
 # example: FW_TESTPMD="$IF_FW0 $IF_FW1"
 FW_TESTPMD=
+# extra testpmd arguments
+FW_TESTPMD_ARGS=
 
 TOPO=single
 NPATTERNS=6

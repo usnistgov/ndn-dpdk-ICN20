@@ -72,7 +72,10 @@ function fw_start() {
     sudo $CMD_TESTPMD -l $CPU_FW --socket-mem $MEM_FW --file-prefix fw \
          $(if_whitelist $IF0 0) $(if_whitelist $IF1 1) \
          $(ls /usr/local/lib/librte_*.so | sed 's|^|-d |') \
-         -- --auto-start --stats-period 1 &>runtime/fw.log &
+         -- --stats-period 1 $FW_TESTPMD_ARGS &>runtime/fw.log &
+    while ! grep 'Port statistics ' runtime/fw.log >/dev/null; do
+      sleep 0.5
+    done
     echo TESTPMD >runtime/version.txt
     return
   fi
