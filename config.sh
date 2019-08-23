@@ -1,14 +1,14 @@
 source env.sh
 
 SRC_ROOT=$HOME/go/src/ndn-dpdk
-CMD_YAMLEDIT='nodejs '$SRC_ROOT'/build/cmd/yamledit/'
-CMD_MGMTCMD=$SRC_ROOT/build/mgmtcmd.sh
-CMD_CREATEFACE='nodejs '$SRC_ROOT'/build/cmd/mgmtclient/create-face'
-CMD_NDNFW=$(which ndnfw-dpdk)
-CMD_TESTPMD=$(which testpmd)
-CMD_NDNPING=$(which ndnping-dpdk)
+CMD_YAMLEDIT=ndndpdk-yamledit
+CMD_MGMTCMD=ndndpdk-mgmtcmd
+CMD_CREATEFACE=ndndpdk-create-face
+CMD_NDNFW=ndnfw-dpdk
+CMD_TESTPMD=testpmd
+CMD_NDNPING=ndnping-dpdk
 CMD_MSIBENCH='nodejs '$SRC_ROOT'/build/cmd/benchmark/msibench'
-CMD_NFDEMU='nodejs '$SRC_ROOT'/build/cmd/nfdemu/'
+CMD_NFDEMU=ndndpdk-nfdemu
 
 # override to bridge two ports with DPDK testpmd in place of forwarder
 # example: FW_TESTPMD="$IF_FW0 $IF_FW1"

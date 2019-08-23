@@ -1,15 +1,15 @@
 {
   "dependencies": {
+    "@usnistgov/ndn-dpdk": "file:~/go/src/ndn-dpdk",
     "debug": "^4.1.1",
     "get-stream": "^5.1.0",
     "js-yaml": "^3.13.1",
-    "ndn-dpdk": "file:~/go/src/ndn-dpdk",
     "object-path": "0.11.4"
   },
   "devDependencies": {
-    "@types/node": "^12.6.9",
+    "@types/node": "^12.7.2",
     "@types/object-path": "0.11.0",
-    "tslint": "^5.18.0",
+    "tslint": "^5.19.0",
     "typescript": "^3.5.3"
   },
   "private": true,
