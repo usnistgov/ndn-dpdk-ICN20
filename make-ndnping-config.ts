@@ -1,12 +1,11 @@
 import Debug = require("debug");
 import getStream from "get-stream";
 import * as yaml from "js-yaml";
-import * as util from "util";
 
-import * as ping from "@usnistgov/ndn-dpdk/app/ping";
-import * as pingclient from "@usnistgov/ndn-dpdk/app/pingclient";
-import * as pingserver from "@usnistgov/ndn-dpdk/app/pingserver";
-import * as iface from "@usnistgov/ndn-dpdk/iface";
+import * as ping from "@usnistgov/ndn-dpdk/app/ping/mod.js";
+import * as pingclient from "@usnistgov/ndn-dpdk/app/pingclient/mod.js";
+import * as pingserver from "@usnistgov/ndn-dpdk/app/pingserver/mod.js";
+import * as iface from "@usnistgov/ndn-dpdk/iface/mod.js";
 
 const debug = Debug("make-ndnping-config");
 
@@ -19,7 +18,7 @@ interface TrafficDirection {
 
 function parseTrafficDirection(input: string, nFaces: number): TrafficDirection {
   if (input.length !== 2) {
-    throw new Error("invalid traffic direction: " + input);
+    throw new Error(`invalid traffic direction: ${input}`);
   }
   const asciiA = "A".charCodeAt(0);
   const td: TrafficDirection = {
@@ -29,10 +28,10 @@ function parseTrafficDirection(input: string, nFaces: number): TrafficDirection 
     serverIndex: input.charCodeAt(1) - asciiA,
   };
   if (td.clientIndex < 0 || td.clientIndex >= nFaces) {
-    throw new Error("client out of range in: " + input);
+    throw new Error(`client out of range in: ${input}`);
   }
   if (td.serverIndex < 0 || td.serverIndex >= nFaces) {
-    throw new Error("server out of range in: " + input);
+    throw new Error(`server out of range in: ${input}`);
   }
   return td;
 }
@@ -80,8 +79,7 @@ function makeNdnpingConfig(a: Args): ping.AppConfig {
       } as pingclient.Config;
 
     for (let i = 0; i < a.nPatterns; ++i) {
-      const prefix = util.format("/%s/%d/%s%s", td.serverName, i, td.clientName,
-                                 "/-".repeat(Math.max(0, a.interestNameLen - 4)));
+      const prefix = `/${td.serverName}/${i}/${td.clientName}${"/-".repeat(Math.max(0, a.interestNameLen - 4))}`;
 
       client.Patterns.push({
         Weight: a.cacheHit ? a.cacheHit.weight0 : 1,
@@ -112,7 +110,7 @@ function makeNdnpingConfig(a: Args): ping.AppConfig {
       Nack: true,
     } as pingserver.Config;
     for (let i = 0; i < a.nPatterns; ++i) {
-      const prefix = util.format("/%s/%d", serverName, i);
+      const prefix = `/${serverName}/${i}`;
       const suffix = "/_".repeat(a.dataSuffixLen);
       // https://github.com/palantir/tslint/issues/3586
       // tslint:disable:object-literal-sort-keys

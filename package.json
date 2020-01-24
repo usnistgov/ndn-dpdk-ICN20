@@ -7,10 +7,12 @@
     "object-path": "0.11.4"
   },
   "devDependencies": {
-    "@types/node": "^12.7.2",
+    "@types/debug": "^4.1.5",
+    "@types/js-yaml": "^3.12.1",
+    "@types/node": "^12.12.25",
     "@types/object-path": "0.11.0",
-    "tslint": "^5.19.0",
-    "typescript": "^3.5.3"
+    "tslint": "^5.20.1",
+    "typescript": "^3.7.5"
   },
   "private": true,
   "scripts": {
