@@ -7,9 +7,9 @@ Write configs in `env.sh` and `init-config.yaml`, and invoke all scripts on traf
 -------------
 | ndn-dpdk  |
 | forwarder |
----v-----v---
-   |     |
----^-----^---
+---v--v--v---
+   |  |  |
+---^--^--^---
 | traffic   |
 | generator |
 -------------

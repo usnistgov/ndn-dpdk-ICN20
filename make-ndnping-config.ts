@@ -3,8 +3,10 @@ import getStream from "get-stream";
 import * as yaml from "js-yaml";
 import * as util from "util";
 
-import * as ndnping from "ndn-dpdk/app/ndnping";
-import * as iface from "ndn-dpdk/iface";
+import * as ping from "@usnistgov/ndn-dpdk/app/ping";
+import * as pingclient from "@usnistgov/ndn-dpdk/app/pingclient";
+import * as pingserver from "@usnistgov/ndn-dpdk/app/pingserver";
+import * as iface from "@usnistgov/ndn-dpdk/iface";
 
 const debug = Debug("make-ndnping-config");
 
@@ -63,8 +65,8 @@ interface Args {
   payloadLen: number;
 }
 
-function makeNdnpingConfig(a: Args): ndnping.AppConfig {
-  const cfg: ndnping.AppConfig = a.faces.map((loc) => ({ Face: loc } as ndnping.TaskConfig));
+function makeNdnpingConfig(a: Args): ping.AppConfig {
+  const cfg: ping.AppConfig = a.faces.map((loc) => ({ Face: loc } as ping.TaskConfig));
   const needServers = {} as { [serverName: string]: number };
 
   a.dirs.forEach((dir) => {
@@ -75,7 +77,7 @@ function makeNdnpingConfig(a: Args): ndnping.AppConfig {
       cfg[td.clientIndex].Client || {
         Patterns: [],
         Interval: a.interval,
-      } as ndnping.ClientConfig;
+      } as pingclient.Config;
 
     for (let i = 0; i < a.nPatterns; ++i) {
       const prefix = util.format("/%s/%d/%s%s", td.serverName, i, td.clientName,
@@ -86,9 +88,9 @@ function makeNdnpingConfig(a: Args): ndnping.AppConfig {
         Prefix: prefix,
         CanBePrefix: a.dataSuffixLen > 0,
         MustBeFresh: true,
-        InterestLifetime: 1E9,
+        InterestLifetime: 1000,
         HopLimit: 64,
-      } as ndnping.ClientPattern);
+      } as pingclient.Pattern);
 
       if (a.cacheHit) {
         client.Patterns.push({
@@ -96,10 +98,10 @@ function makeNdnpingConfig(a: Args): ndnping.AppConfig {
           Prefix: prefix,
           CanBePrefix: a.dataSuffixLen > 0,
           MustBeFresh: false,
-          InterestLifetime: 1E9,
+          InterestLifetime: 1000,
           HopLimit: 64,
           SeqNumOffset: a.cacheHit.offset,
-        } as ndnping.ClientPattern);
+        } as pingclient.Pattern);
       }
     }
   });
@@ -108,7 +110,7 @@ function makeNdnpingConfig(a: Args): ndnping.AppConfig {
     const server = cfg[serverIndex].Server = {
       Patterns: [],
       Nack: true,
-    } as ndnping.ServerConfig;
+    } as pingserver.Config;
     for (let i = 0; i < a.nPatterns; ++i) {
       const prefix = util.format("/%s/%d", serverName, i);
       const suffix = "/_".repeat(a.dataSuffixLen);
@@ -120,11 +122,11 @@ function makeNdnpingConfig(a: Args): ndnping.AppConfig {
           {
             Weight: 1,
             Suffix: suffix,
-            FreshnessPeriod: 4E9,
+            FreshnessPeriod: 4000,
             PayloadLen: a.payloadLen,
           },
         ],
-      } as ndnping.ServerPattern);
+      } as pingserver.Pattern);
       // tslint:enable:object-literal-sort-keys
     }
   }
@@ -132,24 +134,9 @@ function makeNdnpingConfig(a: Args): ndnping.AppConfig {
   return cfg.filter((task) => task.Client || task.Server);
 }
 
-function keys2LowerCase(input: any): any {
-  if (Array.isArray(input)) {
-    return input.map(keys2LowerCase);
-  }
-  if (typeof input === "object") {
-    return Object.fromEntries(
-      Object.entries(input).map(
-        ([k, v]: [string, any]) => [k.toLowerCase(), keys2LowerCase(v)],
-      ),
-    );
-  }
-  return input;
-}
-
 getStream(process.stdin)
 .then((str) => yaml.safeLoad(str) as Args)
 .then(makeNdnpingConfig)
-.then(keys2LowerCase)
 .then((doc) => {
   const output = yaml.safeDump(doc);
   process.stdout.write(output);

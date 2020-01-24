@@ -14,14 +14,14 @@ while read -r -a ROW; do
 
   rm -f runtime/*
   cat init-config.yaml \
-    | $CMD_YAMLEDIT -n fwdp.pcctcapacity ${ROW[0]} \
-    | $CMD_YAMLEDIT -n fwdp.cscapmd ${ROW[1]} \
-    | $CMD_YAMLEDIT -n fwdp.cscapmi ${ROW[2]} \
-    | $CMD_YAMLEDIT -n mempool.IND.capacity 67108863 \
-    | $CMD_YAMLEDIT -n mempool.IND.cachesize 512 \
-    | $CMD_YAMLEDIT -n mempool.ETHRX.capacity 16777215 \
-    | $CMD_YAMLEDIT -n mempool.ETHRX.cachesize 455 \
-    | $CMD_YAMLEDIT -n mempool.ETHRX.dataroomsize 2500 \
+    | $CMD_YAMLEDIT -n Fwdp.PcctCapacity ${ROW[0]} \
+    | $CMD_YAMLEDIT -n Fwdp.CsCapMd ${ROW[1]} \
+    | $CMD_YAMLEDIT -n Fwdp.CsCapMi ${ROW[2]} \
+    | $CMD_YAMLEDIT -n Mempool.IND.Capacity 67108863 \
+    | $CMD_YAMLEDIT -n Mempool.IND.CacheSize 512 \
+    | $CMD_YAMLEDIT -n Mempool.ETHRX.Capacity 16777215 \
+    | $CMD_YAMLEDIT -n Mempool.ETHRX.CacheSize 455 \
+    | $CMD_YAMLEDIT -n Mempool.ETHRX.DataroomSize 2500 \
     >runtime/fw.init-config.yaml
   echo 2000 >runtime/server-payloadlen.txt
 

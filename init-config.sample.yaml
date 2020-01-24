@@ -1,52 +1,55 @@
-mempool:
+Mempool:
   IND:
-    capacity: 4194303
-    cachesize: 267
+    Capacity: 2097151
+    CacheSize: 337
   ETHRX:
-    capacity: 2097151
-    cachesize: 337
-    dataroomsize: 9000
+    Capacity: 1048575
+    CacheSize: 465
+    DataroomSize: 2200
   NAME:
-    capacity: 65535
-    cachesize: 255
+    Capacity: 65535
+    CacheSize: 255
   HDR:
-    capacity: 65535
-    cachesize: 255
+    Capacity: 65535
+    CacheSize: 255
   INTG:
-    capacity: 65535
-    cachesize: 255
+    Capacity: 65535
+    CacheSize: 255
   INT:
-    capacity: 65535
-    cachesize: 255
+    Capacity: 65535
+    CacheSize: 255
   DATA0:
-    capacity: 65535
-    cachesize: 255
+    Capacity: 65535
+    CacheSize: 255
   DATA1:
-    capacity: 255
-    cachesize: 0
-    dataroomsize: 9000
-lcorealloc: null
-face:
-  enableeth: true
-  ethdisablerxflow: false
-  ethmtu: 9000
-  ethrxqframes: 4096
-  ethtxqpkts: 256
-  ethtxqframes: 4096
-  enablesock: false
-ndt:
-  prefixlen: 2
-  indexbits: 16
-  samplefreq: 8
-fib:
-  maxentries: 65535
-  nbuckets: 256
-  startdepth: 4
-fwdp:
-  fwdqueuecapacity: 128
-  latencysamplefreq: 16
-  pcctcapacity: 131071
-  cscapmd: 32768
-  cscapmi: 32768
-ping:
-  queuecapacity: 256
+    Capacity: 255
+    CacheSize: 0
+    DataroomSize: 9000
+LCoreAlloc: null
+Face:
+  EnableEth: true
+  EthDisableRxFlow: false
+  EthMtu: 1500
+  EthRxqFrames: 4096
+  EthTxqPkts: 256
+  EthTxqFrames: 4096
+  EnableSock: true
+  SockTxqPkts: 256
+  SockTxqFrames: 1024
+  ChanRxgFrames: 4096
+Ndt:
+  PrefixLen: 2
+  IndexBits: 16
+  SampleFreq: 8
+Fib:
+  MaxEntries: 65535
+  NBuckets: 256
+  StartDepth: 8
+Fwdp:
+  FwdQueueCapacity: 128
+  LatencySampleFreq: 16
+  PcctCapacity: 131071
+  CsCapMd: 32768
+  CsCapMi: 32768
+Ping:
+  QueueCapacity: 256
