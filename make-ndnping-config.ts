@@ -1,11 +1,10 @@
 import Debug = require("debug");
-import getStream from "get-stream";
-import * as yaml from "js-yaml";
-
 import * as ping from "@usnistgov/ndn-dpdk/app/ping/mod.js";
 import * as pingclient from "@usnistgov/ndn-dpdk/app/pingclient/mod.js";
 import * as pingserver from "@usnistgov/ndn-dpdk/app/pingserver/mod.js";
 import * as iface from "@usnistgov/ndn-dpdk/iface/mod.js";
+import getStream from "get-stream";
+import * as yaml from "js-yaml";
 
 const debug = Debug("make-ndnping-config");
 
@@ -112,8 +111,6 @@ function makeNdnpingConfig(a: Args): ping.AppConfig {
     for (let i = 0; i < a.nPatterns; ++i) {
       const prefix = `/${serverName}/${i}`;
       const suffix = "/_".repeat(a.dataSuffixLen);
-      // https://github.com/palantir/tslint/issues/3586
-      // tslint:disable:object-literal-sort-keys
       server.Patterns.push({
         Prefix: prefix,
         Replies: [
@@ -125,7 +122,6 @@ function makeNdnpingConfig(a: Args): ping.AppConfig {
           },
         ],
       } as pingserver.Pattern);
-      // tslint:enable:object-literal-sort-keys
     }
   }
 
