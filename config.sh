@@ -8,7 +8,6 @@ CMD_NDNFW=ndnfw-dpdk
 CMD_TESTPMD=testpmd
 CMD_NDNPING=ndnping-dpdk
 CMD_MSIBENCH='nodejs '$SRC_ROOT'/build/cmd/benchmark/msibench'
-CMD_NFDEMU=ndndpdk-nfdemu
 
 # override to bridge two ports with DPDK testpmd in place of forwarder
 # example: FW_TESTPMD="$IF_FW0 $IF_FW1"
