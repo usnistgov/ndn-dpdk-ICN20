@@ -3,6 +3,7 @@ import * as ping from "@usnistgov/ndn-dpdk/app/ping/mod.js";
 import * as pingclient from "@usnistgov/ndn-dpdk/app/pingclient/mod.js";
 import * as pingserver from "@usnistgov/ndn-dpdk/app/pingserver/mod.js";
 import * as iface from "@usnistgov/ndn-dpdk/iface/mod.js";
+import * as fs from "fs";
 import getStream from "get-stream";
 import * as yaml from "js-yaml";
 
@@ -44,62 +45,95 @@ interface CacheHitArg {
   offset: number;
 }
 
-interface Args {
+interface ArgsBase {
   // face locators
   faces: iface.Locator[];
   // traffic direction, example: ["AB", "BC", "CA"]
   dirs: string[];
-  // initial Interest interval (nanos)
-  interval: number;
-  // number of patterns per traffic direction
-  nPatterns: number;
   // Interest name length including sequence number, minimum 4
   interestNameLen: number;
-  // allow some cache hits
-  cacheHit?: CacheHitArg;
   // Data suffix length, appended to Interest names
   dataSuffixLen: number;
   // Content payload length
   payloadLen: number;
 }
 
-function makeNdnpingConfig(a: Args): ping.AppConfig {
-  const cfg: ping.AppConfig = a.faces.map((loc) => ({ Face: loc } as ping.TaskConfig));
+interface ArgsPing extends ArgsBase {
+  mode: "ping";
+  // number of patterns per traffic direction
+  nPatterns: number;
+  // initial Interest interval (nanos)
+  interval: number;
+  // allow some cache hits
+  cacheHit?: CacheHitArg;
+}
+
+interface ArgsFetch extends ArgsBase {
+  mode: "fetch";
+  // number of fetchers per traffic direction
+  nFetchers: number;
+  // number of patterns per fetcher
+  nPatterns: number;
+}
+
+type Args = ArgsPing | ArgsFetch;
+
+function makeNdnpingConfig(a: Args): [ping.AppConfig, string] {
+  let cfg: ping.AppConfig = a.faces.map((loc) => ({ Face: loc } as ping.TaskConfig));
   const needServers = {} as { [serverName: string]: number };
+  const fetchbenchCmds = new WeakMap<ping.TaskConfig, string>();
 
   a.dirs.forEach((dir) => {
     const td = parseTrafficDirection(dir, a.faces.length);
     needServers[td.serverName] = td.serverIndex;
 
-    const client = cfg[td.clientIndex].Client =
-      cfg[td.clientIndex].Client || {
-        Patterns: [],
-        Interval: a.interval,
-      } as pingclient.Config;
+    switch (a.mode) {
+    case "ping": {
+      const client = cfg[td.clientIndex].Client =
+        cfg[td.clientIndex].Client ?? {
+          Patterns: [],
+          Interval: a.interval,
+        } as pingclient.Config;
 
-    for (let i = 0; i < a.nPatterns; ++i) {
-      const prefix = `/${td.serverName}/${i}/${td.clientName}${"/-".repeat(Math.max(0, a.interestNameLen - 4))}`;
+      for (let i = 0; i < a.nPatterns; ++i) {
+        const prefix = `/${td.serverName}/${i}/${td.clientName}${"/-".repeat(Math.max(0, a.interestNameLen - 4))}`;
 
-      client.Patterns.push({
-        Weight: a.cacheHit ? a.cacheHit.weight0 : 1,
-        Prefix: prefix,
-        CanBePrefix: a.dataSuffixLen > 0,
-        MustBeFresh: true,
-        InterestLifetime: 1000,
-        HopLimit: 64,
-      } as pingclient.Pattern);
-
-      if (a.cacheHit) {
         client.Patterns.push({
-          Weight: a.cacheHit.weight1,
+          Weight: a.cacheHit ? a.cacheHit.weight0 : 1,
           Prefix: prefix,
           CanBePrefix: a.dataSuffixLen > 0,
-          MustBeFresh: false,
+          MustBeFresh: true,
           InterestLifetime: 1000,
           HopLimit: 64,
-          SeqNumOffset: a.cacheHit.offset,
         } as pingclient.Pattern);
+
+        if (a.cacheHit) {
+          client.Patterns.push({
+            Weight: a.cacheHit.weight1,
+            Prefix: prefix,
+            CanBePrefix: a.dataSuffixLen > 0,
+            MustBeFresh: false,
+            InterestLifetime: 1000,
+            HopLimit: 64,
+            SeqNumOffset: a.cacheHit.offset,
+          } as pingclient.Pattern);
+        }
       }
+      break;
+    }
+    case "fetch": {
+      let clientFetchers = cfg[td.clientIndex].Fetch ?? 0;
+      let fetchbenchCmd = fetchbenchCmds.get(cfg[td.clientIndex]) ?? "";
+      for (let j = 0; j < a.nFetchers; ++j) {
+        const fetcherId = `TASKID-${clientFetchers}`;
+        const prefix = `/${td.serverName}/#/*_${td.clientName}_@${"/-".repeat(Math.max(0, a.interestNameLen - 4))}`;
+        fetchbenchCmd += ` --NameGen.${fetcherId}.NameCount ${a.nPatterns} --NameGen.${fetcherId}.NameTemplate ${prefix}`;
+        ++clientFetchers;
+      }
+      cfg[td.clientIndex].Fetch = clientFetchers;
+      fetchbenchCmds.set(cfg[td.clientIndex], fetchbenchCmd);
+      break;
+    }
     }
   });
 
@@ -125,14 +159,16 @@ function makeNdnpingConfig(a: Args): ping.AppConfig {
     }
   }
 
-  return cfg.filter((task) => task.Client || task.Server);
+  cfg = cfg.filter((task) => task.Server || task.Client || task.Fetch);
+  return [cfg, cfg.map((task, taskId) => (fetchbenchCmds.get(task) ?? "").replace(/TASKID/g, `${taskId}`)).join(" ")];
 }
 
 getStream(process.stdin)
 .then((str) => yaml.safeLoad(str) as Args)
 .then(makeNdnpingConfig)
-.then((doc) => {
+.then(([doc, fetchbenchCmd]) => {
   const output = yaml.safeDump(doc);
   process.stdout.write(output);
+  fs.writeSync(6, fetchbenchCmd);
 })
 .catch(debug);

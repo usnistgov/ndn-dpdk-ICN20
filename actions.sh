@@ -169,14 +169,16 @@ faces:
   Port: "'$(if_port $IF_GEN2 2)'"
   Local: "02:02:00:00:00:01"
   Remote: "01:00:5e:00:17:aa"
+mode: '$GENMODE'
 dirs: '$DIRS'
+nFetchers: '$NFETCHERS'
 nPatterns: '$NPATTERNS'
 interval: '$INTERVAL_INIT'
 interestNameLen: '$INTERESTNAMELEN'
 dataSuffixLen: '$DATASUFFIXLEN'
 payloadLen: '$PAYLOADLEN'
 ' >runtime/gen.input.yaml
-  nodejs build/make-ndnping-config <runtime/gen.input.yaml >runtime/gen.tasks.yaml
+  nodejs build/make-ndnping-config <runtime/gen.input.yaml >runtime/gen.tasks.yaml 6>runtime/fetchbenchcmd.txt
 
   sudo MGMT=tcp://127.0.0.1:6345 $CMD_NDNPING \
     -l $CPU_GEN --socket-mem $MEM_GEN --file-prefix gen \
@@ -197,11 +199,20 @@ function msibench_exec() {
   DEBUG='*' $CMD_MSIBENCH --IntervalMin $MSI_INTERVALMIN --IntervalMax $MSI_INTERVALMAX --IntervalStep $MSI_INTERVALSTEP --DesiredUncertainty $MSI_UNCERTAINTY --IntervalNearby $MSI_HINTNEARBY 2>runtime/msibench.log >runtime/msibench.out
 }
 
-function run_msibench() {
+function fetchbench_exec() {
+  DEBUG='*' $CMD_FETCHBENCH --DesiredUncertainty $FETCH_UNCERTAINTY --Interval $FETCH_SAMPLEINTERVAL --Count $FETCH_SAMPLECOUNT \
+    $(cat runtime/fetchbenchcmd.txt) 2>runtime/fetchbench.log >runtime/fetchbench.out
+}
+
+function run_benchmark() {
   fw_start
   gen_start
   sleep 10
-  msibench_exec
+  if [[ $GENMODE == 'msi' ]]; then
+    msibench_exec
+  elif [[ $GENMODE == 'fetch' ]]; then
+    fetchbench_exec
+  fi
   gen_stop
   fw_stop
 }
