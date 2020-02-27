@@ -1,8 +1,9 @@
 # environment configuration
 
-# SSH hostname
-HOST_FW=fwhost
-SSH_FW=fwhost
+# forwarder control
+HOST_FW=fwhost # `hostname -s`
+SSH_FW=fwhost # SSH hostname
+JSONRPC_FW=fwhost # JSON-RPC hostname
 NO_RSYNC=0 # set to 1 to disable rsync and assume NFS
 
 # PCI address or ifname or IPv4 address of network interfaces

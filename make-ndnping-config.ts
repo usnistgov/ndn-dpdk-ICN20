@@ -58,8 +58,8 @@ interface ArgsBase {
   payloadLen: number;
 }
 
-interface ArgsPing extends ArgsBase {
-  mode: "ping";
+interface ArgsMsi extends ArgsBase {
+  mode: "msi";
   // number of patterns per traffic direction
   nPatterns: number;
   // initial Interest interval (nanos)
@@ -76,7 +76,7 @@ interface ArgsFetch extends ArgsBase {
   nPatterns: number;
 }
 
-type Args = ArgsPing | ArgsFetch;
+type Args = ArgsMsi | ArgsFetch;
 
 function makeNdnpingConfig(a: Args): [ping.AppConfig, string] {
   let cfg: ping.AppConfig = a.faces.map((loc) => ({ Face: loc } as ping.TaskConfig));
@@ -88,7 +88,7 @@ function makeNdnpingConfig(a: Args): [ping.AppConfig, string] {
     needServers[td.serverName] = td.serverIndex;
 
     switch (a.mode) {
-    case "ping": {
+    case "msi": {
       const client = cfg[td.clientIndex].Client =
         cfg[td.clientIndex].Client ?? {
           Patterns: [],

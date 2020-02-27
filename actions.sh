@@ -1,5 +1,7 @@
 mkdir -p runtime
 
+MGMTFW=tcp://$JSONRPC_FW:6345
+
 function remote_fw_act() {
   ssh -n $SSH_FW bash --login $(pwd)/remote-act.sh "$@"
 }
@@ -80,40 +82,34 @@ function fw_start() {
     return
   fi
 
-  local FW_FACES=''
-  if [[ $FW_NO_FACES -ne 1 ]]; then
-    FW_FACES="$(if_whitelist $IF_FW0 0) $(if_whitelist $IF_FW1 1) $(if_whitelist $IF_FW2 2)"
-  fi
+  local FW_FACES="$(if_whitelist $IF_FW0 0) $(if_whitelist $IF_FW1 1) $(if_whitelist $IF_FW2 2)"
 
-  sudo MGMT=tcp://127.0.0.1:6345 $CMD_NDNFW \
+  sudo MGMT=tcp://0.0.0.0:6345 $CMD_NDNFW \
     -l $CPU_FW --socket-mem $MEM_FW --file-prefix fw $FW_FACES \
     -- -initcfg @runtime/fw.init-config.yaml &>runtime/fw.log &
 
-  while ! $CMD_MGMTCMD version &>runtime/version.txt; do
+  while ! MGMT=$MGMTFW $CMD_MGMTCMD version &>runtime/version.txt; do
     sleep 0.5
   done
+}
 
-  if [[ $FW_NO_FACES -eq 1 ]]; then
-    return
-  fi
-
-  $CMD_CREATEFACE --scheme ether --port $(if_port $IF_FW0 0) \
-                  --local 02:00:00:00:00:02 --remote 01:00:5e:00:17:aa >runtime/faceid-A.txt
-  $CMD_CREATEFACE --scheme ether --port $(if_port $IF_FW1 1) \
-                  --local 02:01:00:00:00:02 --remote 01:00:5e:00:17:aa >runtime/faceid-B.txt
-  $CMD_CREATEFACE --scheme ether --port $(if_port $IF_FW2 2) \
-                  --local 02:02:00:00:00:02 --remote 01:00:5e:00:17:aa >runtime/faceid-C.txt
+function fw_facefib() {
+  MGMT=$MGMTFW $CMD_CREATEFACE --port $(if_port $IF_FW0 0) >runtime/fw.faceid-A.txt
+  MGMT=$MGMTFW $CMD_CREATEFACE --port $(if_port $IF_FW1 1) >runtime/fw.faceid-B.txt
+  MGMT=$MGMTFW $CMD_CREATEFACE --port $(if_port $IF_FW2 2) >runtime/fw.faceid-C.txt
   for FACENAME in A B C; do
-    local NEXTHOP=$(cat runtime/faceid-$FACENAME.txt)
+    local NEXTHOP=$(cat runtime/fw.faceid-$FACENAME.txt)
     for I in $(seq 0 $((NPATTERNS-1))); do
       local PREFIX=/$FACENAME/$I
-      $CMD_MGMTCMD ndt updaten $PREFIX $I >/dev/null
-      $CMD_MGMTCMD fib insert $PREFIX $NEXTHOP >/dev/null
+      MGMT=$MGMTFW $CMD_MGMTCMD ndt updaten $PREFIX $I >/dev/null
+      MGMT=$MGMTFW $CMD_MGMTCMD fib insert $PREFIX $NEXTHOP >/dev/null
     done
   done
 }
 
 function fw_stop() {
+  rm -f runtime/fw.faceid-?.txt
+
   if [[ $(hostname -s) != $HOST_FW ]] && [[ $NO_REMOTE_ACT -ne 1 ]]; then
     remote_fw_act fw_stop
     do_rsync $SSH_FW:$(pwd)/runtime/fw.log runtime/
@@ -121,7 +117,6 @@ function fw_stop() {
   fi
 
   process_stop '\--file-prefix fw '
-  rm -f runtime/faceid-?.txt
 }
 
 function topo2dirs() {
@@ -180,7 +175,7 @@ payloadLen: '$PAYLOADLEN'
 ' >runtime/gen.input.yaml
   nodejs build/make-ndnping-config <runtime/gen.input.yaml >runtime/gen.tasks.yaml 6>runtime/fetchbenchcmd.txt
 
-  sudo MGMT=tcp://127.0.0.1:6345 $CMD_NDNPING \
+  sudo MGMT=tcp://0.0.0.0:6345 $CMD_NDNPING \
     -l $CPU_GEN --socket-mem $MEM_GEN --file-prefix gen \
     $(if_whitelist $IF_GEN0 0) $(if_whitelist $IF_GEN1 1) $(if_whitelist $IF_GEN2 2) \
     -- -initcfg @runtime/gen.init-config.yaml -cnt 1s -tasks=@runtime/gen.tasks.yaml &>runtime/gen.log &
@@ -206,6 +201,7 @@ function fetchbench_exec() {
 
 function run_benchmark() {
   fw_start
+  fw_facefib
   gen_start
   sleep 10
   if [[ $GENMODE == 'msi' ]]; then
