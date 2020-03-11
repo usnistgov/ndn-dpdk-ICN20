@@ -1,6 +1,8 @@
+.env
+.vscode
 build
-env.sh
 config-override.sh
+env.sh
 init-config.yaml
 node_modules
 runtime

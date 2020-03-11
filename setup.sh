@@ -1,19 +1,16 @@
 #!/bin/bash
-cd "$( dirname "${BASH_SOURCE[0]}" )"
-source config.sh
+HUGE1G_NPAGES=$1
+SPDK_PATH=$2
 
-sudo NRHUGE=0 $HOME/spdk-*/scripts/setup.sh
-sudo umount /mnt/huge
+NRHUGE=0 ${SPDK_PATH}/scripts/setup.sh
+umount /mnt/huge
 
 if ! mount | grep /mnt/huge1G; then
-  sudo mkdir -p /mnt/huge1G
-  sudo mount -t hugetlbfs nodev /mnt/huge1G -o pagesize=1G
-  echo Mounting 1GB hugepages at /mnt/huge1G
+  mkdir -p /mnt/huge1G
+  mount -t hugetlbfs nodev /mnt/huge1G -o pagesize=1G
 fi
-for NODE in node0 node1; do
-  echo $HUGE1G_NPAGES | sudo tee /sys/devices/system/node/$NODE/hugepages/hugepages-1048576kB/nr_hugepages >/dev/null
-  echo Reserving $HUGE1G_NPAGES hugepages on $NODE
+for NODEDIR in /sys/devices/system/node/node*; do
+  echo $HUGE1G_NPAGES > $NODEDIR/hugepages/hugepages-1048576kB/nr_hugepages
 done
 
-sudo modprobe ib_uverbs
-
+modprobe ib_uverbs
