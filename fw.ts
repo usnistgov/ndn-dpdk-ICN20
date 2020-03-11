@@ -88,7 +88,7 @@ export class FwCountersSnapshot {
 
 /** Control a host running NDN-DPDK forwarder. */
 export class Forwarder extends Host {
-  public constructor(runtimeDir: RuntimeDir, mgmtUri: string = env.MGMT_FW, netifs: ReadonlyArray<NetifInfo> = env.IF_FW) {
+  public constructor(runtimeDir: RuntimeDir, mgmtUri: string = env.MGMT_FW, netifs: readonly NetifInfo[] = env.IF_FW) {
     super(runtimeDir, "fw", mgmtUri, netifs);
   }
 
@@ -159,7 +159,7 @@ export class Forwarder extends Host {
   /** Start the forwarder. */
   public async start() {
     this.runtimeDir.writeFile("fw.init-config.json", this.buildInitConfig());
-    return this.startImpl("fw-start.sh", { "INITCONFIG": "fw.init-config.json" }, { "FWLOG": "fw.log" });
+    return this.startImpl("fw-start.sh", { INITCONFIG: "fw.init-config.json" }, { FWLOG: "fw.log" });
   }
 
   /**
@@ -199,7 +199,7 @@ export class Forwarder extends Host {
   }
 
   /** Write a FIB entry. */
-  public async setFibEntry(name: string, nexthops: ReadonlyArray<number>) {
+  public async setFibEntry(name: string, nexthops: readonly number[]) {
     await this.mgmt.request<fib.InsertArg, fib.InsertReply>("Fib.Insert", {
       Name: name,
       Nexthops: nexthops.concat([]),

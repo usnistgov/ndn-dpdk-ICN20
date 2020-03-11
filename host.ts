@@ -27,9 +27,9 @@ export class Host {
    * @param netifs netif definitions.
    */
   protected constructor(protected readonly runtimeDir: RuntimeDir,
-                        protected readonly dpdkFilePrefix: string,
-                        protected readonly mgmtUri: string,
-                        protected readonly netifs: ReadonlyArray<NetifInfo>) {
+      protected readonly dpdkFilePrefix: string,
+      protected readonly mgmtUri: string,
+      protected readonly netifs: readonly NetifInfo[]) {
     this.mgmt = makeMgmtClient(mgmtUri);
   }
 
@@ -50,7 +50,6 @@ export class Host {
 
     const setupFile = await this.uploadScriptFile("setup.sh");
     await this.ssh.exec(`[[ -f /tmp/ndndpdk-benchmark_setup-done ]] || sudo HUGE1G_NPAGES=${env.HUGE1G_NPAGES} SPDK_PATH=${shellQuote([env.SPDK_PATH])} bash ${setupFile}`);
-
   }
 
   /** Disconnect from the host. */

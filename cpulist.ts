@@ -77,7 +77,7 @@ export class LcoreAssignment {
   }
 
   /** List lcores are assigned to role. */
-  public list(role: string): ReadonlyArray<number> {
+  public list(role: string): readonly number[] {
     return this.table.get(role) ?? [];
   }
 
@@ -94,7 +94,7 @@ export class LcoreAssignment {
   }
 
   public toConfigJson(): LCoreAllocConfig {
-    const cfg = {} as LCoreAllocConfig;
+    const cfg: LCoreAllocConfig = {};
     for (const [role, lcores] of this.table) {
       if (/^[_]/.test(role)) {
         continue;

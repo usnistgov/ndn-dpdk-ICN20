@@ -4,7 +4,7 @@ import type SSH from "node-ssh";
 import username from "username";
 
 /** Retrieve array item using letter index A=0,B=1,etc. */
-export function atIndex<T>(arr: ReadonlyArray<T>, index: string): T {
+export function atIndex<T>(arr: readonly T[], index: string): T {
   const i = index.charCodeAt(0) - "A".charCodeAt(0);
   if (i < 0 || i >= arr.length) {
     throw new Error("index out of range");

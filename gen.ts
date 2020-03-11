@@ -8,13 +8,13 @@ import { Host } from "./host";
 import { RuntimeDir } from "./runtime-dir";
 
 export interface BenchmarkRecord {
-  fetchJobs: Array<{ args: FetchBenchmarkArgs, reply: FetchBenchmarkReply }>;
+  fetchJobs: Array<{ args: FetchBenchmarkArgs; reply: FetchBenchmarkReply }>;
   goodput: number;
 }
 
 /** Control a host running NDN-DPDK traffic generator. */
 export class TrafficGen extends Host {
-  constructor(runtimeDir: RuntimeDir, mgmtUri: string = env.MGMT_GEN, netifs: ReadonlyArray<NetifInfo> = env.IF_GEN) {
+  constructor(runtimeDir: RuntimeDir, mgmtUri: string = env.MGMT_GEN, netifs: readonly NetifInfo[] = env.IF_GEN) {
     super(runtimeDir, "gen", mgmtUri, netifs);
   }
 
@@ -56,12 +56,12 @@ export class TrafficGen extends Host {
   protected buildTasks(): GenTasks {
     const tasks = [] as GenTasks;
     for (const [index, { numa, pci }] of this.ethPorts) {
-      const task = {
+      const task: GenTask = {
         Face: {
           Scheme: "ether",
           Port: pci,
         },
-      } as GenTask;
+      };
 
       if (this.clients.has(index)) {
         task.Fetch = this.options.nFetchers;
@@ -122,7 +122,7 @@ export class TrafficGen extends Host {
   public async start() {
     this.runtimeDir.writeFile("gen.tasks.json", this.buildTasks());
     this.runtimeDir.writeFile("gen.init-config.json", this.buildInitConfig());
-    return this.startImpl("gen-start.sh", { "INITCONFIG": "gen.init-config.json", "GENTASKS": "gen.tasks.json" }, { "GENLOG": "gen.log" });
+    return this.startImpl("gen-start.sh", { INITCONFIG: "gen.init-config.json", GENTASKS: "gen.tasks.json" }, { GENLOG: "gen.log" });
   }
 
   /** Execute benchmark once. */
@@ -138,11 +138,11 @@ export class TrafficGen extends Host {
   private *listFetchJobs(): Iterable<FetchBenchmarkArgs> {
     const rnd = Math.floor(Math.random() * 99999999).toString().padStart(8, "0");
     for (const [client, servers] of this.clients) {
-      const fetchJobs = this.clientIds.get(client)!.map((fetchId) => ({
+      const fetchJobs = this.clientIds.get(client)!.map((fetchId): FetchBenchmarkArgs => ({
         ...fetchId,
         Names: [],
         ...this.options.fetchBenchmarkArg,
-      } as FetchBenchmarkArgs));
+      }));
 
       let i = 0;
       for (const name of this.listFetchNames(client, servers, rnd)) {
