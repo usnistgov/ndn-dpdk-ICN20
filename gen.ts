@@ -140,13 +140,13 @@ export class TrafficGen extends Host {
     for (const [client, servers] of this.clients) {
       const fetchJobs = this.clientIds.get(client)!.map((fetchId): FetchBenchmarkArgs => ({
         ...fetchId,
-        Names: [],
+        Templates: [],
         ...this.options.fetchBenchmarkArg,
       }));
 
       let i = 0;
       for (const name of this.listFetchNames(client, servers, rnd)) {
-        fetchJobs[i].Names.push(name);
+        fetchJobs[i].Templates.push({ Prefix: name, CanBePrefix: this.options.dataHasSuffix });
         i = (i + 1) % fetchJobs.length;
       }
       yield* fetchJobs;
