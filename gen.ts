@@ -23,6 +23,7 @@ export class TrafficGen extends Host {
     nFetchers: 2,
     nPatterns: 6, // name prefixes between a client and a server
     nDupPatterns: 0,
+    interestLifetime: 300,
     dataHasSuffix: false,
     payloadLen: 1000,
     fetchBenchmarkArg: {
@@ -146,7 +147,11 @@ export class TrafficGen extends Host {
 
       let i = 0;
       for (const name of this.listFetchNames(client, servers, rnd)) {
-        fetchJobs[i].Templates.push({ Prefix: name, CanBePrefix: this.options.dataHasSuffix });
+        fetchJobs[i].Templates.push({
+          Prefix: name,
+          CanBePrefix: this.options.dataHasSuffix,
+          InterestLifetime: this.options.interestLifetime,
+        });
         i = (i + 1) % fetchJobs.length;
       }
       yield* fetchJobs;

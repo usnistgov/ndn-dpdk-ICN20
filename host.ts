@@ -4,6 +4,7 @@ import SSH from "node-ssh";
 import * as os from "os";
 import * as path from "path";
 import { quote as shellQuote } from "shell-quote";
+import smallestPowerOfTwo from "smallest-power-of-two";
 
 import { atIndex, env, NetifInfo } from "./config";
 import { CpuList, LcoreAssignment } from "./cpulist";
@@ -73,16 +74,16 @@ export class Host {
   }
 
   /** Build init-config sections common to all NDN-DPDK programs. */
-  protected buildInitConfig(): InitConfig {
+  protected buildInitConfig({ ethrxCap = 1048575, mtu = 9000 } = {}): InitConfig {
     return {
       Mempool: {
-        IND: MempoolCapacityConfig.create(2097151),
-        ETHRX: MempoolCapacityConfig.create(1048575, 9200),
+        IND: MempoolCapacityConfig.create(smallestPowerOfTwo(ethrxCap * 2) - 1),
+        ETHRX: MempoolCapacityConfig.create(smallestPowerOfTwo(ethrxCap) - 1, Math.max(mtu, 2000) + 200),
       },
       LCoreAlloc: this.lcores.toConfigJson(),
       Face: {
         EnableEth: true,
-        EthMtu: 9000,
+        EthMtu: mtu,
         EthRxqFrames: 4096,
         EthTxqPkts: 256,
         EthTxqFrames: 4096,
@@ -107,27 +108,27 @@ export class Host {
 
     const assigned = this.lcores.listAssigned();
     const unassigned = this.lcores.listUnassigned(this.cpuList, assigned);
-    const socketMem = 32768; // memory per socket
+    const socketMem = 1024 * (env.HUGE1G_NPAGES - 1); // memory per socket
     const ealParams = `${`-l ${assigned.join()} --master-lcore ${masterLcore} ` +
                       `--socket-mem ${Array.from(this.cpuList.records.keys()).map(() => socketMem)} ` +
                       `--file-prefix ${this.dpdkFilePrefix} ` +
                       `${Array.from(this.ethPorts.values()).map((netif) => `-w ${netif.pci}`).join(" ")}`} `;
-    let env = `EALPARAMS=${shellQuote([ealParams])}`;
+    let environ = `EALPARAMS=${shellQuote([ealParams])}`;
 
     const cpusetFile = await this.uploadScriptFile("cpuset.sh");
-    env += ` CPUSETBIN=${cpusetFile} CPUSET_B=${assigned.join()} CPUSET_O=${unassigned.join()}`;
+    environ += ` CPUSETBIN=${cpusetFile} CPUSET_B=${assigned.join()} CPUSET_O=${unassigned.join()}`;
 
     for (const [envVar, localFile] of Object.entries(uploads)) {
       const remoteFile = await this.uploadRuntimeFile(localFile);
-      env += ` ${envVar}=${remoteFile}`;
+      environ += ` ${envVar}=${remoteFile}`;
     }
     for (const [envVar, localFile] of Object.entries(downloads)) {
       const remoteFile = this.downloadRuntimeFileLater(localFile);
-      env += ` ${envVar}=${remoteFile}`;
+      environ += ` ${envVar}=${remoteFile}`;
     }
 
     const scriptFile = await this.uploadScriptFile(scriptName);
-    return this.ssh.exec(`${env} bash ${scriptFile}`);
+    return this.ssh.exec(`${environ} bash ${scriptFile}`);
   }
 
   /** Stop NDN-DPDK process. */

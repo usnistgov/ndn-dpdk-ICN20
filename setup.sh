@@ -1,9 +1,8 @@
 #!/bin/bash
-HUGE1G_NPAGES=$1
-SPDK_PATH=$2
+set -e
 
-NRHUGE=0 ${SPDK_PATH}/scripts/setup.sh
-umount /mnt/huge
+NRHUGE=0 eval $SPDK_PATH'/scripts/setup.sh'
+[[ -f /mnt/huge ]] && umount /mnt/huge
 
 if ! mount | grep /mnt/huge1G; then
   mkdir -p /mnt/huge1G
@@ -14,3 +13,5 @@ for NODEDIR in /sys/devices/system/node/node*; do
 done
 
 modprobe ib_uverbs
+
+touch /tmp/ndndpdk-benchmark_setup-done

@@ -1,3 +1,5 @@
+import * as path from "path";
+
 import { getSshConfig } from "./config";
 import { Forwarder, FwCounters } from "./fw";
 import { BenchmarkRecord as GenBenchmarkRecord, TrafficGen } from "./gen";
@@ -56,15 +58,10 @@ export class Scenario {
     ]);
   }
 
-  public async stopAndDisconnect() {
-    await Promise.all([
-      this.fw.stop(),
-      this.gen.stop(),
-    ]);
-    await Promise.all([
-      this.fw.disconnect(),
-      this.gen.disconnect(),
-    ]);
+  public async start() {
+    await this.fw.start();
+    await this.gen.initForwarder(this.fw);
+    await this.gen.start();
   }
 
   /** Perform one observation and return the result. */
@@ -91,5 +88,56 @@ export class Scenario {
       const tcState = cond.getState();
       this.runtimeDir.writeNdjson("observations.ndjson", { ...ob, tcState });
     }
+  }
+
+  public async stop() {
+    await Promise.all([
+      this.fw.stop(),
+      this.gen.stop(),
+    ]);
+  }
+
+  public async disconnect() {
+    await Promise.all([
+      this.fw.disconnect(),
+      this.gen.disconnect(),
+    ]);
+  }
+}
+
+export namespace Scenario {
+  export type InitFunction = (scenario: Scenario) => Promise<void>;
+
+  /**
+   * Execute a scenario if it hasn't been completed.
+   * @param name scenario name, must be valid directory name.
+   * @param init0 initialization before starting forwarder and generator.
+   * @param init1 initialization after starting forwarder and generator.
+   * @param cond terminate condition.
+   */
+  export async function execute(
+      name: string,
+      init0: InitFunction = () => Promise.resolve(),
+      init1: InitFunction = () => Promise.resolve(),
+      cond: TerminateCondition = new FixedRuns(10),
+  ) {
+    const runtimeDir = new RuntimeDir(path.join(__dirname, "output", name));
+    if (runtimeDir.hasFile("scenario-done.json")) {
+      return;
+    }
+    runtimeDir.deleteAll();
+
+    const scenario = new Scenario(runtimeDir);
+    await scenario.connect();
+    await init0(scenario);
+    await scenario.start();
+    await init1(scenario);
+    await scenario.observe(); // dry-run
+    await scenario.run(cond);
+    await scenario.stop();
+    await scenario.disconnect();
+
+    runtimeDir.writeFile("scenario-done.json", Date.now());
+    await runtimeDir.close();
   }
 }

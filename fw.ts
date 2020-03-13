@@ -97,6 +97,8 @@ export class Forwarder extends Host {
     CsCapMi: 32768,
   };
 
+  public initConfigOptions: Parameters<Host["buildInitConfig"]>[0];
+
   private faces = new Map<string, number>(); // portIndex=>face
   private ndtValues = new Map<number, number>(); // Index=>Value
 
@@ -127,7 +129,7 @@ export class Forwarder extends Host {
     const PcctCapacity = smallestPowerOfTwo(CsCapMd + CsCapMi + guaranteedPitCapacity) - 1;
 
     return {
-      ...super.buildInitConfig(),
+      ...super.buildInitConfig(this.initConfigOptions),
       Ndt: {
         PrefixLen: 2,
         IndexBits: 16,

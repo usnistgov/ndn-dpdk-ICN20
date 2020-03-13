@@ -26,17 +26,25 @@ class NdjsonWriter {
   }
 }
 
+/** Access runtime logging directory. */
 export class RuntimeDir {
   private readonly ndjsonWriters = new Map<string, NdjsonWriter>();
 
   constructor(public readonly path = defaultDir) {
-    if (!fs.statSync(path).isDirectory()) {
-      fs.mkdirSync(path);
+    try {
+      fs.opendirSync(this.path).closeSync();
+    } catch {
+      fs.mkdirSync(path, { recursive: true });
     }
   }
 
   public getFilename(filename: string) {
     return path.join(this.path, filename);
+  }
+
+  public hasFile(filename: string): boolean {
+    const localFile = this.getFilename(filename);
+    return fs.existsSync(localFile);
   }
 
   public writeFile(filename: string, value: any) {
@@ -53,7 +61,14 @@ export class RuntimeDir {
     w.write(value);
   }
 
+  public deleteAll() {
+    for (const filename of fs.readdirSync(this.path)) {
+      fs.unlinkSync(path.join(this.path, filename));
+    }
+  }
+
   public async close() {
     await Promise.all(Array.from(this.ndjsonWriters.values()).map((w) => w.close()));
+    this.ndjsonWriters.clear();
   }
 }

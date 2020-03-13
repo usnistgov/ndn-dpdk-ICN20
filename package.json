@@ -15,9 +15,9 @@
     "node-ssh": "^7.0.1",
     "readable-stream": "^3.6.0",
     "shell-quote": "^1.7.2",
+    "smallest-power-of-two": "^1.1.2",
     "ts-node": "^8.6.2",
     "typescript": "^3.8.3",
-    "smallest-power-of-two": "^1.1.2",
     "username": "^5.1.0"
   },
   "devDependencies": {
