@@ -65,9 +65,10 @@ export class TrafficGen extends Host {
       };
 
       if (this.clients.has(index)) {
-        task.Fetch = this.options.nFetchers;
+        const nFetchers = Math.min(this.options.nFetchers, this.options.nPatterns);
+        task.Fetch = nFetchers;
         const fetchIds = [] as FetchIndexArg[];
-        for (let i = 0; i < this.options.nFetchers; ++i) {
+        for (let i = 0; i < nFetchers; ++i) {
           this.lcores.add("CLIR", this.cpuList.take(numa));
           fetchIds.push({ Index: tasks.length, FetchId: i });
         }
