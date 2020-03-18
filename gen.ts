@@ -31,6 +31,8 @@ export class TrafficGen extends Host {
       Interval: 100,
       Count: 600,
     },
+    clientRxDelay: 10E6,
+    serverRxDelay: 10E6,
   };
 
   private clients = new Map<string, Set<string>>();
@@ -67,6 +69,11 @@ export class TrafficGen extends Host {
       if (this.clients.has(index)) {
         const nFetchers = Math.min(this.options.nFetchers, this.options.nPatterns);
         task.Fetch = nFetchers;
+        task.FetchCfg = {
+          RxQueue: {
+            Delay: this.options.clientRxDelay,
+          },
+        };
         const fetchIds = [] as FetchIndexArg[];
         for (let i = 0; i < nFetchers; ++i) {
           this.lcores.add("CLIR", this.cpuList.take(numa));
@@ -77,6 +84,9 @@ export class TrafficGen extends Host {
 
       if (this.servers.has(index)) {
         task.Server = {
+          RxQueue: {
+            Delay: this.options.serverRxDelay,
+          },
           Nack: true,
           Patterns: [
             {

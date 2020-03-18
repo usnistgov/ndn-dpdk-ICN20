@@ -8,7 +8,11 @@ if [[ $(whoami) != 'root' ]]; then
 fi
 
 if [[ $PROC -eq 0 ]]; then # disable
-  if [[ -f /dev/cpuset/B/tasks ]] && [[ $(wc -l </dev/cpuset/B/tasks) -eq 0 ]]; then
+  if [[ -f /dev/cpuset/B/tasks ]]; then
+    while [[ $(wc -l </dev/cpuset/B/tasks) -ne 0 ]]; do
+      kill $(cat /dev/cpuset/B/tasks)
+      sleep 1
+    done
     rmdir /dev/cpuset/B
     cat /dev/cpuset/cpuset.cpus >/dev/cpuset/O/cpuset.cpus
     exit 0

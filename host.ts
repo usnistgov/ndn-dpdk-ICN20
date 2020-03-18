@@ -4,7 +4,6 @@ import SSH from "node-ssh";
 import * as os from "os";
 import * as path from "path";
 import { quote as shellQuote } from "shell-quote";
-import smallestPowerOfTwo from "smallest-power-of-two";
 
 import { atIndex, env, NetifInfo } from "./config";
 import { CpuList, LcoreAssignment } from "./cpulist";
@@ -77,8 +76,8 @@ export class Host {
   protected buildInitConfig({ ethrxCap = 1048575, mtu = 9000 } = {}): InitConfig {
     return {
       Mempool: {
-        IND: MempoolCapacityConfig.create(smallestPowerOfTwo(ethrxCap * 2) - 1),
-        ETHRX: MempoolCapacityConfig.create(smallestPowerOfTwo(ethrxCap) - 1, Math.max(mtu, 2000) + 200),
+        IND: MempoolCapacityConfig.create(ethrxCap * 2),
+        ETHRX: MempoolCapacityConfig.create(ethrxCap, Math.max(mtu, 2000) + 200),
       },
       LCoreAlloc: this.lcores.toConfigJson(),
       Face: {
