@@ -93,6 +93,7 @@ export class Forwarder extends Host {
   }
 
   public options = {
+    PitCap: 50000, // this allows one million I/s at 50ms RTT
     CsCapMd: 32768,
     CsCapMi: 32768,
   };
@@ -122,11 +123,11 @@ export class Forwarder extends Host {
   /** Build init-config including forwarder-specific sections. */
   protected buildInitConfig(): InitConfig {
     const {
+      PitCap,
       CsCapMd,
       CsCapMi,
     } = this.options;
-    const guaranteedPitCapacity = 50000; // this allows one million I/s at 50ms RTT
-    const PcctCapacity = smallestPowerOfTwo(CsCapMd + CsCapMi + guaranteedPitCapacity) - 1;
+    const PcctCapacity = smallestPowerOfTwo(CsCapMd * 2 + CsCapMi + PitCap) - 1;
 
     return {
       ...super.buildInitConfig(this.initConfigOptions),

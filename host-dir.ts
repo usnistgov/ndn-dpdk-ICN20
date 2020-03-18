@@ -53,6 +53,7 @@ export class RemoteHostDir implements HostDir {
 
   public async connect() {
     this.sftp = await this.ssh.requestSFTP();
+    await this.ssh.exec("rm -f /tmp/ndndpdk-benchmark_temp-*-*");
   }
 
   public async upload(localFile: string, force = false) {
