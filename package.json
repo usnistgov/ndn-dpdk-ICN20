@@ -30,6 +30,7 @@
   },
   "private": true,
   "scripts": {
+    "build": "tsc --noEmit",
     "lint": "eslint --ignore-path .gitignore -c mk/eslintrc-ts.js --fix **/*.ts"
   }
 }

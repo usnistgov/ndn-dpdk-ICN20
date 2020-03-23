@@ -1,11 +1,6 @@
 import { InitConfig } from "@usnistgov/ndn-dpdk/cmd/ndnfw-dpdk/mod";
-import * as pit from "@usnistgov/ndn-dpdk/container/pit/mod";
 import * as stat from "@usnistgov/ndn-dpdk/core/running_stat/mod";
-import { Counters as FaceCounters, FaceId, Locator } from "@usnistgov/ndn-dpdk/iface/mod";
-import * as face from "@usnistgov/ndn-dpdk/mgmt/facemgmt/mod";
-import * as fib from "@usnistgov/ndn-dpdk/mgmt/fibmgmt/mod";
-import * as fwdp from "@usnistgov/ndn-dpdk/mgmt/fwdpmgmt/mod";
-import * as ndt from "@usnistgov/ndn-dpdk/mgmt/ndtmgmt/mod";
+import { Counters as FaceCounters, FaceId } from "@usnistgov/ndn-dpdk/iface/mod";
 import smallestPowerOfTwo from "smallest-power-of-two";
 
 import { env, NetifInfo } from "./config";
@@ -177,7 +172,7 @@ export class Forwarder extends Host {
         throw new Error(`port ${index} not declared`);
       }
 
-      const face = await this.mgmt.request<Locator, face.BasicInfo>("Face.Create", { Scheme: "ether", Port: netif.pci });
+      const face = await this.mgmt.request("Face", "Create", { Scheme: "ether", Port: netif.pci });
       faceId = face.Id;
       this.faces.set(index, faceId);
     }
@@ -190,7 +185,7 @@ export class Forwarder extends Host {
    * (forwarding thread number), this situation is logged in fw.ndt-conflicts.ndjson file.
    */
   public async setNdtRecord(name: string, value: number) {
-    const { Index: index } = await this.mgmt.request<ndt.UpdateArgs, ndt.UpdateReply>("Ndt.Update", {
+    const { Index: index } = await this.mgmt.request("Ndt", "Update", {
       Name: name,
       Value: value,
     });
@@ -203,7 +198,7 @@ export class Forwarder extends Host {
 
   /** Write a FIB entry. */
   public async setFibEntry(name: string, nexthops: readonly number[]) {
-    await this.mgmt.request<fib.InsertArg, fib.InsertReply>("Fib.Insert", {
+    await this.mgmt.request("Fib", "Insert", {
       Name: name,
       Nexthops: nexthops.concat([]),
     });
@@ -220,8 +215,8 @@ export class Forwarder extends Host {
     const cnt = makeEmptyFwCounters();
     for (let fwIndex = 0, nFwds = this.countFwds(); fwIndex < nFwds; ++fwIndex) {
       const [pitCnt, csCnt] = await Promise.all([
-        this.mgmt.request<fwdp.IndexArg, pit.Counters>("DpInfo.Pit", { Index: fwIndex }),
-        this.mgmt.request<fwdp.IndexArg, fwdp.CsCounters>("DpInfo.Cs", { Index: fwIndex }),
+        this.mgmt.request("DpInfo", "Pit", { Index: fwIndex }),
+        this.mgmt.request("DpInfo", "Cs", { Index: fwIndex }),
       ]);
       cnt.fw.push({
         nPitFound: pitCnt.NFound,
@@ -231,7 +226,7 @@ export class Forwarder extends Host {
       });
     }
     for (const [portIndex, faceId] of this.faces) {
-      const faceInfo = await this.mgmt.request<face.IdArg, face.FaceInfo>("Face.Get", { Id: faceId });
+      const faceInfo = await this.mgmt.request("Face", "Get", { Id: faceId });
       cnt.face[portIndex] = faceInfo.Counters;
     }
     return cnt;

@@ -140,7 +140,7 @@ export class TrafficGen extends Host {
   /** Execute benchmark once. */
   public async benchmarkOnce(): Promise<BenchmarkRecord> {
     const fetchJobs = await Promise.all(Array.from(this.listFetchJobs()).map(async (args) => {
-      const reply = await this.mgmt.request<FetchBenchmarkArgs, FetchBenchmarkReply>("Fetch.Benchmark", args);
+      const reply = await this.mgmt.request("Fetch", "Benchmark", args);
       return { args, reply };
     }));
     const goodput = fetchJobs.map(({ reply }) => reply.Goodput).reduce((sum, value) => sum + value, 0);
