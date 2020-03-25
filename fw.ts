@@ -91,6 +91,7 @@ export class Forwarder extends Host {
     PitCap: 50000, // this allows one million I/s at 50ms RTT
     CsCapMd: 32768,
     CsCapMi: 32768,
+    enableHrlog: false,
   };
 
   public initConfigOptions: Parameters<Host["buildInitConfig"]>[0];
@@ -238,5 +239,33 @@ export class Forwarder extends Host {
 
   public async readCountersSince(since: FwCountersSnapshot): Promise<FwCounters> {
     return since.until(await this.readCounters());
+  }
+
+  /**
+   * Collect high resolution per-packet logs.
+   * @returns filename
+   */
+  public async startHrlog(): Promise<string|undefined> {
+    if (!this.options.enableHrlog) {
+      return undefined;
+    }
+
+    const localFilename = `${Date.now()}.hrlog`;
+    const remoteFilename = this.downloadRuntimeFileLater(localFilename);
+    await this.ssh.exec(`touch ${remoteFilename}`);
+    await this.mgmt.request("Hrlog", "Start", {
+      Filename: remoteFilename,
+    });
+    return localFilename;
+  }
+
+  public async stopHrlog(localFilename: string|undefined): Promise<void> {
+    if (!localFilename) {
+      return undefined;
+    }
+    const remoteFilename = this.downloadRuntimeFileLater(localFilename);
+    await this.mgmt.request("Hrlog", "Stop", {
+      Filename: remoteFilename,
+    });
   }
 }

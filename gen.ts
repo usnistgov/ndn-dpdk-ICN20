@@ -20,17 +20,18 @@ export class TrafficGen extends Host {
 
   public options = {
     nComps: 4,
-    nFetchers: 2,
+    nFetchers: 6,
     nPatterns: 6, // name prefixes between a client and a server
     nDupPatterns: 0,
     interestLifetime: 300,
     dataHasSuffix: false,
     payloadLen: 1000,
     fetchBenchmarkArg: {
-      Warmup: 5000,
+      Warmup: 0,
       Interval: 100,
       Count: 600,
     },
+    clientPortStartGap: 0, // start client ports at different times
     clientRxDelay: 10E6,
     serverRxDelay: 10E6,
   };
@@ -140,6 +141,7 @@ export class TrafficGen extends Host {
   /** Execute benchmark once. */
   public async benchmarkOnce(): Promise<BenchmarkRecord> {
     const fetchJobs = await Promise.all(Array.from(this.listFetchJobs()).map(async (args) => {
+      await new Promise((r) => setTimeout(r, args.Index * this.options.clientPortStartGap));
       const reply = await this.mgmt.request("Fetch", "Benchmark", args);
       return { args, reply };
     }));

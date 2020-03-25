@@ -36,6 +36,7 @@ export class FixedRuns implements TerminateCondition {
 
 /** Record of an observation. */
 export interface ObservationRecord extends FwCounters, GenBenchmarkRecord {
+  hrlogFilename?: string;
   timeBegin: number;
   timeEnd: number;
   duration: number;
@@ -65,15 +66,21 @@ export class Scenario {
   }
 
   /** Perform one observation and return the result. */
-  public async observe(): Promise<ObservationRecord> {
+  public async observe(isDryRun = false): Promise<ObservationRecord> {
     const fwSnapshot = await this.fw.snapshotCounters();
+    const hrlogFilename = isDryRun ? undefined : await this.fw.startHrlog();
     const timeBegin = Date.now();
     const genRecord = await this.gen.benchmarkOnce();
     const timeEnd = Date.now();
     const fwCnt = await this.fw.readCountersSince(fwSnapshot);
+    if (!isDryRun) {
+      await this.fw.stopHrlog(hrlogFilename);
+    }
+
     return {
       ...fwCnt,
       ...genRecord,
+      hrlogFilename,
       timeBegin,
       timeEnd,
       duration: timeEnd - timeBegin,
@@ -132,7 +139,7 @@ export namespace Scenario {
     await init0(scenario);
     await scenario.start();
     await init1(scenario);
-    await scenario.observe(); // dry-run
+    await scenario.observe(true);
     await scenario.run(cond);
     await scenario.stop();
     await scenario.disconnect();

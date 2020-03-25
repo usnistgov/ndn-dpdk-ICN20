@@ -37,16 +37,12 @@ export class LocalHostDir implements HostDir {
   }
 }
 
-function makeRemoteFilename(localFile: string): string {
-  const name = path.basename(localFile).replace(/[^0-9A-Z]/ig, "");
-  return `/tmp/ndndpdk-benchmark_temp-${name}-${Math.floor(Math.random() * 100000000)}`;
-}
-
 /** Access files on remote host via SFTP. */
 export class RemoteHostDir implements HostDir {
   private sftp!: SSH.SFTP;
   private readonly uploads = new Map<string, string>();
   private readonly downloads = new Map<string, string>();
+  private readonly nameRnd = Math.floor(Math.random() * 100000000);
 
   constructor(private readonly ssh: SSH) {
   }
@@ -56,13 +52,19 @@ export class RemoteHostDir implements HostDir {
     await this.ssh.exec("rm -f /tmp/ndndpdk-benchmark_temp-*-*");
   }
 
+  private makeRemoteFilename(localFile: string): string {
+    const name = path.basename(localFile).replace(/[^0-9A-Z]/ig, "");
+    return `/tmp/ndndpdk-benchmark_temp-${this.nameRnd}-${name}`;
+  }
+
   public async upload(localFile: string, force = false) {
     let remoteFile = this.uploads.get(localFile);
     if (!force && !!remoteFile) {
       return remoteFile;
     }
 
-    remoteFile = makeRemoteFilename(localFile);
+    remoteFile = this.makeRemoteFilename(localFile);
+    this.uploads.set(localFile, remoteFile);
     await this.ssh.putFile(localFile, remoteFile, this.sftp);
     return remoteFile;
   }
@@ -73,7 +75,7 @@ export class RemoteHostDir implements HostDir {
       return remoteFile;
     }
 
-    remoteFile = makeRemoteFilename(localFile);
+    remoteFile = this.makeRemoteFilename(localFile);
     this.downloads.set(localFile, remoteFile);
     return remoteFile;
   }
