@@ -17,6 +17,7 @@ export class Host {
   protected readonly ethPorts = new Map<string, NetifInfo>();
   protected readonly lcores = new LcoreAssignment();
   protected readonly mgmt: RpcClient;
+  private keepAlive!: NodeJS.Timeout;
   private hostDir!: HostDir;
 
   /**
@@ -36,6 +37,7 @@ export class Host {
   /** Connect to the host. */
   public async connect(sshConfig: SSH.ConfigGiven) {
     await this.ssh.connect(sshConfig);
+    this.keepAlive = setInterval(() => { this.ssh.exec("pwd"); }, 30000);
 
     const isLocal = sshConfig.host === "localhost" && (await this.ssh.exec("hostname -s")) === os.hostname();
     if (isLocal) {
@@ -55,6 +57,7 @@ export class Host {
   /** Disconnect from the host. */
   public async disconnect() {
     await this.hostDir.close();
+    clearInterval(this.keepAlive);
     this.ssh.dispose();
   }
 
@@ -148,5 +151,9 @@ export class Host {
 
   protected downloadRuntimeFileLater(filename: string) {
     return this.hostDir.downloadLater(this.runtimeDir.getFilename(filename));
+  }
+
+  protected cancelDownloadRuntimeFile(filename: string) {
+    return this.hostDir.delete(this.runtimeDir.getFilename(filename));
   }
 }

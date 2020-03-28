@@ -1,29 +1,32 @@
 import "hard-rejection/register";
 
-import { Scenario } from "./scenario";
+import { FixedRuns, Scenario } from "./scenario";
 
 interface Row {
-  title: string;
-  CsCapMd: number;
-  CsCapMi?: number;
-  nFwds?: number;
+  csCapacity: number;
+  dataHasSuffix?: boolean;
 }
 
 const TABLE: Row[] = [
-  { title: "2b17", CsCapMd: 2 ** 17 },
-  { title: "2b18", CsCapMd: 2 ** 18 },
-  { title: "2b19", CsCapMd: 2 ** 19 },
-  { title: "2b20", CsCapMd: 2 ** 20 },
+  { csCapacity: 2 ** 17 },
+  { csCapacity: 2 ** 18 },
+  { csCapacity: 2 ** 19 },
+  { csCapacity: 2 ** 20 },
+  { csCapacity: 2 ** 20, dataHasSuffix: true },
 ];
 
+const nFwds = 4;
+
 (async () => {
-for (const { title, CsCapMd, CsCapMi = 32768, nFwds = 4 } of TABLE) {
-  await Scenario.execute(`csmatch/${title}`,
+for (const { csCapacity, dataHasSuffix = false } of TABLE) {
+  const csCapacityLog2 = Math.log2(csCapacity);
+  const csCapacityTitle = csCapacityLog2 === Math.round(csCapacityLog2) ? `2p${csCapacityLog2}` : `${csCapacity}`;
+  await Scenario.execute(`csmatch/${csCapacityTitle}_${dataHasSuffix ? "S" : "E"}`,
     async ({ fw, gen }) => {
-      fw.options.CsCapMd = CsCapMd;
-      fw.options.CsCapMi = CsCapMi;
+      fw.options.CsCapMd = csCapacity;
+      fw.options.CsCapMi = dataHasSuffix ? csCapacity : 256;
       fw.initConfigOptions = {
-        ethrxCap: (CsCapMd * 2 + CsCapMi + fw.options.PitCap) * nFwds,
+        ethrxCap: (fw.options.CsCapMd + fw.options.PitCap) * nFwds + 65536,
         mtu: 1500,
       };
       fw.options.enableHrlog = true;
@@ -35,12 +38,15 @@ for (const { title, CsCapMd, CsCapMi = 32768, nFwds = 4 } of TABLE) {
       gen.options.nFetchers = nFwds;
       gen.options.nPatterns = nFwds;
       gen.options.nDupPatterns = nFwds;
+      gen.options.dataHasSuffix = dataHasSuffix;
       gen.options.clientPortStartGap = 20;
       gen.options.clientRxDelay = 20E6;
       gen.options.serverRxDelay = 0;
       gen.addTrafficDirection("B", "A");
       gen.addTrafficDirection("C", "A");
     },
+    undefined,
+    new FixedRuns(3),
   );
 }
 })();

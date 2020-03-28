@@ -1,7 +1,7 @@
 import * as path from "path";
 
 import { getSshConfig } from "./config";
-import { Forwarder, FwCounters } from "./fw";
+import { Forwarder, FwCounters, HrlogHistograms } from "./fw";
 import { BenchmarkRecord as GenBenchmarkRecord, TrafficGen } from "./gen";
 import { RuntimeDir } from "./runtime-dir";
 
@@ -37,6 +37,7 @@ export class FixedRuns implements TerminateCondition {
 /** Record of an observation. */
 export interface ObservationRecord extends FwCounters, GenBenchmarkRecord {
   hrlogFilename?: string;
+  hrlogHistograms?: HrlogHistograms;
   timeBegin: number;
   timeEnd: number;
   duration: number;
@@ -73,14 +74,13 @@ export class Scenario {
     const genRecord = await this.gen.benchmarkOnce();
     const timeEnd = Date.now();
     const fwCnt = await this.fw.readCountersSince(fwSnapshot);
-    if (!isDryRun) {
-      await this.fw.stopHrlog(hrlogFilename);
-    }
+    const hrlogHistograms = isDryRun ? undefined : await this.fw.stopHrlog(hrlogFilename);
 
     return {
       ...fwCnt,
       ...genRecord,
       hrlogFilename,
+      hrlogHistograms,
       timeBegin,
       timeEnd,
       duration: timeEnd - timeBegin,

@@ -1,3 +1,4 @@
+import * as fs from "fs";
 import SSH from "node-ssh";
 import * as path from "path";
 
@@ -18,6 +19,9 @@ export interface HostDir {
    */
   downloadLater(localFile: string): string;
 
+  /** Delete a file created by downloadLater(). */
+  delete(localFile: string): void;
+
   /** Download files as scheduled and delete uploads. */
   close(): Promise<void>;
 }
@@ -30,6 +34,10 @@ export class LocalHostDir implements HostDir {
 
   public downloadLater(localFile: string) {
     return localFile;
+  }
+
+  public delete(localFile: string) {
+    fs.unlink(localFile, () => undefined);
   }
 
   public close() {
@@ -78,6 +86,12 @@ export class RemoteHostDir implements HostDir {
     remoteFile = this.makeRemoteFilename(localFile);
     this.downloads.set(localFile, remoteFile);
     return remoteFile;
+  }
+
+  public delete(localFile: string) {
+    const remoteFile = this.downloadLater(localFile);
+    this.ssh.exec(`rm -f ${remoteFile}`).catch();
+    this.downloads.delete(localFile);
   }
 
   public async close() {

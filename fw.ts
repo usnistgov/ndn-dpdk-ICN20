@@ -1,3 +1,4 @@
+import { Histogram } from "@usnistgov/ndn-dpdk/cmd/ndndpdk-hrlog2histogram/mod";
 import { InitConfig } from "@usnistgov/ndn-dpdk/cmd/ndnfw-dpdk/mod";
 import * as stat from "@usnistgov/ndn-dpdk/core/running_stat/mod";
 import { Counters as FaceCounters, FaceId } from "@usnistgov/ndn-dpdk/iface/mod";
@@ -81,6 +82,8 @@ export class FwCountersSnapshot {
   }
 }
 
+export type HrlogHistograms = Histogram[];
+
 /** Control a host running NDN-DPDK forwarder. */
 export class Forwarder extends Host {
   public constructor(runtimeDir: RuntimeDir, mgmtUri: string = env.MGMT_FW, netifs: readonly NetifInfo[] = env.IF_FW) {
@@ -92,6 +95,7 @@ export class Forwarder extends Host {
     CsCapMd: 32768,
     CsCapMi: 32768,
     enableHrlog: false,
+    saveHrlog: false,
   };
 
   public initConfigOptions: Parameters<Host["buildInitConfig"]>[0];
@@ -148,6 +152,10 @@ export class Forwarder extends Host {
           DequeueBurstSize: 64,
         },
         LatencySampleFreq: 16,
+        Suppress: {
+          Min: 200E6,
+          Max: 200E6,
+        },
         PcctCapacity,
         CsCapMd,
         CsCapMi,
@@ -259,7 +267,7 @@ export class Forwarder extends Host {
     return localFilename;
   }
 
-  public async stopHrlog(localFilename: string|undefined): Promise<void> {
+  public async stopHrlog(localFilename: string|undefined): Promise<HrlogHistograms|undefined> {
     if (!localFilename) {
       return undefined;
     }
@@ -267,5 +275,10 @@ export class Forwarder extends Host {
     await this.mgmt.request("Hrlog", "Stop", {
       Filename: remoteFilename,
     });
+    const hists = JSON.parse(await this.ssh.exec(`ndndpdk-hrlog2histogram -f ${remoteFilename}`));
+    if (!this.options.saveHrlog) {
+      this.cancelDownloadRuntimeFile(localFilename);
+    }
+    return hists;
   }
 }

@@ -8,7 +8,7 @@ import { Host } from "./host";
 import { RuntimeDir } from "./runtime-dir";
 
 export interface BenchmarkRecord {
-  fetchJobs: Array<{ args: FetchBenchmarkArgs; reply: FetchBenchmarkReply }>;
+  fetchJobs: Array<{ delay: number; args: FetchBenchmarkArgs; reply: FetchBenchmarkReply }>;
   goodput: number;
 }
 
@@ -141,9 +141,10 @@ export class TrafficGen extends Host {
   /** Execute benchmark once. */
   public async benchmarkOnce(): Promise<BenchmarkRecord> {
     const fetchJobs = await Promise.all(Array.from(this.listFetchJobs()).map(async (args) => {
-      await new Promise((r) => setTimeout(r, args.Index * this.options.clientPortStartGap));
+      const delay = args.Index * this.options.clientPortStartGap;
+      await new Promise((r) => setTimeout(r, delay));
       const reply = await this.mgmt.request("Fetch", "Benchmark", args);
-      return { args, reply };
+      return { delay, args, reply };
     }));
     const goodput = fetchJobs.map(({ reply }) => reply.Goodput).reduce((sum, value) => sum + value, 0);
     return { fetchJobs, goodput };
@@ -172,10 +173,9 @@ export class TrafficGen extends Host {
   }
 
   private *listFetchNames(client: string, servers: Set<string>, rnd: string): Iterable<Name> {
-    const firstClient = Array.from(this.clients.keys()).unshift();
     for (const server of servers) {
       for (let i = 0; i < this.options.nPatterns; ++i) {
-        const clientName = i < this.options.nDupPatterns ? firstClient : client;
+        const clientName = i < this.options.nDupPatterns ? "~" : client;
         yield `/${server}/${i}/${clientName}_${rnd}${"/127=Y".repeat(this.options.nComps - 4)}`;
       }
     }
