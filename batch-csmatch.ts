@@ -35,7 +35,7 @@ for (const { csCapacity, dataHasSuffix = false } of TABLE) {
       fw.declareEthPort("C");
       fw.allocFwds(1, nFwds);
 
-      gen.options.nFetchers = nFwds;
+      gen.options.nFetchThreads = nFwds;
       gen.options.nPatterns = nFwds;
       gen.options.nDupPatterns = nFwds;
       gen.options.dataHasSuffix = dataHasSuffix;

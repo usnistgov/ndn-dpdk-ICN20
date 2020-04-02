@@ -1,6 +1,5 @@
 import { AppConfig as GenTasks, TaskConfig as GenTask } from "@usnistgov/ndn-dpdk/app/ping/mod";
-import { FetchBenchmarkArgs, FetchBenchmarkReply, FetchIndexArg } from "@usnistgov/ndn-dpdk/mgmt/pingmgmt/mod";
-import { Name } from "@usnistgov/ndn-dpdk/ndn/mod";
+import { FetchBenchmarkArgs, FetchBenchmarkReply, FetchTemplate } from "@usnistgov/ndn-dpdk/mgmt/pingmgmt/mod";
 
 import { env, NetifInfo } from "./config";
 import { Forwarder } from "./fw";
@@ -8,7 +7,14 @@ import { Host } from "./host";
 import { RuntimeDir } from "./runtime-dir";
 
 export interface BenchmarkRecord {
-  fetchJobs: Array<{ delay: number; args: FetchBenchmarkArgs; reply: FetchBenchmarkReply }>;
+  fetchDir: Record<string, BenchmarkDirRecord>;
+  goodput: number;
+}
+
+export interface BenchmarkDirRecord {
+  delay: number;
+  templates: FetchTemplate[];
+  reply: FetchBenchmarkReply[];
   goodput: number;
 }
 
@@ -20,14 +26,13 @@ export class TrafficGen extends Host {
 
   public options = {
     nComps: 4,
-    nFetchers: 6,
+    nFetchThreads: 6,
     nPatterns: 6, // name prefixes between a client and a server
     nDupPatterns: 0,
     interestLifetime: 300,
     dataHasSuffix: false,
     payloadLen: 1000,
     fetchBenchmarkArg: {
-      Warmup: 0,
       Interval: 100,
       Count: 600,
     },
@@ -38,7 +43,7 @@ export class TrafficGen extends Host {
 
   private clients = new Map<string, Set<string>>();
   private servers = new Set<string>();
-  private clientIds = new Map<string, FetchIndexArg[]>();
+  private clientTaskIndex = new Map<string, number>();
 
   /**
    * Add a traffic direction.
@@ -68,19 +73,19 @@ export class TrafficGen extends Host {
       };
 
       if (this.clients.has(index)) {
-        const nFetchers = Math.min(this.options.nFetchers, this.options.nPatterns);
-        task.Fetch = nFetchers;
-        task.FetchCfg = {
+        const NProcs = this.clients.get(index)!.size * this.options.nPatterns;
+        const NThreads = Math.min(this.options.nFetchThreads, NProcs);
+        task.Fetch = {
+          NThreads,
+          NProcs,
           RxQueue: {
             Delay: this.options.clientRxDelay,
           },
         };
-        const fetchIds = [] as FetchIndexArg[];
-        for (let i = 0; i < nFetchers; ++i) {
+        for (let i = 0; i < NThreads; ++i) {
           this.lcores.add("CLIR", this.cpuList.take(numa));
-          fetchIds.push({ Index: tasks.length, FetchId: i });
         }
-        this.clientIds.set(index, fetchIds);
+        this.clientTaskIndex.set(index, tasks.length);
       }
 
       if (this.servers.has(index)) {
@@ -140,44 +145,59 @@ export class TrafficGen extends Host {
 
   /** Execute benchmark once. */
   public async benchmarkOnce(): Promise<BenchmarkRecord> {
-    const fetchJobs = await Promise.all(Array.from(this.listFetchJobs()).map(async (args) => {
+    const fetchJobs = await Promise.all(Array.from(this.listFetchJobs()).map(async ({ client, servers, args }) => {
       const delay = args.Index * this.options.clientPortStartGap;
       await new Promise((r) => setTimeout(r, delay));
       const reply = await this.mgmt.request("Fetch", "Benchmark", args);
-      return { delay, args, reply };
+      return { client, servers, args, delay, reply };
     }));
-    const goodput = fetchJobs.map(({ reply }) => reply.Goodput).reduce((sum, value) => sum + value, 0);
-    return { fetchJobs, goodput };
+
+    const record: BenchmarkRecord = {
+      fetchDir: {},
+      goodput: 0,
+    };
+    for (const { client, servers, args, delay, reply } of fetchJobs) {
+      const offset = 0;
+      for (const server of servers) {
+        const end = offset + this.options.nPatterns;
+        const dir: BenchmarkDirRecord = {
+          delay,
+          templates: args.Templates.slice(offset, end),
+          reply: reply.slice(offset, end),
+          goodput: 0,
+        };
+        dir.goodput = dir.reply.map(({ Goodput }) => Goodput).reduce((sum, value) => sum + value, 0);
+        record.fetchDir[`${client}${server}`] = dir;
+        record.goodput += dir.goodput;
+      }
+    }
+    return record;
   }
 
-  private *listFetchJobs(): Iterable<FetchBenchmarkArgs> {
+  private *listFetchJobs(): Iterable<{ client: string; servers: string[]; args: FetchBenchmarkArgs}> {
     const rnd = Math.floor(Math.random() * 99999999).toString().padStart(8, "0");
-    for (const [client, servers] of this.clients) {
-      const fetchJobs = this.clientIds.get(client)!.map((fetchId): FetchBenchmarkArgs => ({
-        ...fetchId,
+    for (const [client, serverSet] of this.clients) {
+      const args: FetchBenchmarkArgs = {
+        Index: this.clientTaskIndex.get(client)!,
         Templates: [],
         ...this.options.fetchBenchmarkArg,
-      }));
+      };
 
-      let i = 0;
-      for (const name of this.listFetchNames(client, servers, rnd)) {
-        fetchJobs[i].Templates.push({
-          Prefix: name,
-          CanBePrefix: this.options.dataHasSuffix,
-          InterestLifetime: this.options.interestLifetime,
-        });
-        i = (i + 1) % fetchJobs.length;
-      }
-      yield* fetchJobs;
-    }
-  }
+      const servers = Array.from(serverSet);
+      for (const server of servers) {
+        for (let i = 0; i < this.options.nPatterns; ++i) {
+          const clientName = i < this.options.nDupPatterns ? "~" : client;
+          const name = `/${server}/${i}/${clientName}_${rnd}${"/127=Y".repeat(this.options.nComps - 4)}`;
 
-  private *listFetchNames(client: string, servers: Set<string>, rnd: string): Iterable<Name> {
-    for (const server of servers) {
-      for (let i = 0; i < this.options.nPatterns; ++i) {
-        const clientName = i < this.options.nDupPatterns ? "~" : client;
-        yield `/${server}/${i}/${clientName}_${rnd}${"/127=Y".repeat(this.options.nComps - 4)}`;
+          args.Templates.push({
+            Prefix: name,
+            CanBePrefix: this.options.dataHasSuffix,
+            InterestLifetime: this.options.interestLifetime,
+          });
+        }
       }
+
+      yield { client, servers, args };
     }
   }
 }
