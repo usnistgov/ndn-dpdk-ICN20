@@ -16,6 +16,8 @@ for (const nComps of [4, 10, 16]) {
           gen.options.nComps = nComps;
           gen.options.nFetchThreads = 4;
           gen.options.nPatterns = nFwds;
+          gen.options.clientRxDelay = 1E6;
+          gen.options.serverRxDelay = 0;
           gen.addTrafficDirection(dir[0], dir[1]);
           gen.addTrafficDirection(dir[1], dir[0]);
         },

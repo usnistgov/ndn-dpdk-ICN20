@@ -10,7 +10,7 @@ fi
 if [[ $PROC -eq 0 ]]; then # disable
   if [[ -f /dev/cpuset/B/tasks ]]; then
     while [[ $(wc -l </dev/cpuset/B/tasks) -ne 0 ]]; do
-      kill $(cat /dev/cpuset/B/tasks)
+      kill $(cat /dev/cpuset/B/tasks) 2>/dev/null # suppress error if task list becomes empty
       sleep 1
     done
     rmdir /dev/cpuset/B

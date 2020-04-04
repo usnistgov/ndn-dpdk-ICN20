@@ -30,6 +30,7 @@ export class TrafficGen extends Host {
     nPatterns: 6, // name prefixes between a client and a server
     nDupPatterns: 0,
     interestLifetime: 300,
+    nServerThreads: 2,
     dataHasSuffix: false,
     payloadLen: 1000,
     fetchBenchmarkArg: {
@@ -90,6 +91,7 @@ export class TrafficGen extends Host {
 
       if (this.servers.has(index)) {
         task.Server = {
+          NThreads: this.options.nServerThreads,
           RxQueue: {
             Delay: this.options.serverRxDelay,
           },
@@ -107,7 +109,9 @@ export class TrafficGen extends Host {
             },
           ],
         };
-        this.lcores.add("SVR", this.cpuList.take(numa));
+        for (let i = 0; i < this.options.nServerThreads; ++i) {
+          this.lcores.add("SVR", this.cpuList.take(numa));
+        }
       }
 
       if (!!task.Fetch || !!task.Server) {
