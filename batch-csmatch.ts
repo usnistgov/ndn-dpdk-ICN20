@@ -40,8 +40,6 @@ for (const { csCapacity, dataHasSuffix = false } of TABLE) {
       gen.options.nDupPatterns = nFwds;
       gen.options.dataHasSuffix = dataHasSuffix;
       gen.options.clientPortStartGap = 20;
-      gen.options.clientRxDelay = 20E6;
-      gen.options.serverRxDelay = 0;
       gen.addTrafficDirection("B", "A");
       gen.addTrafficDirection("C", "A");
     },

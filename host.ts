@@ -81,6 +81,7 @@ export class Host {
       Mempool: {
         IND: MempoolCapacityConfig.create(ethrxCap * 2),
         ETHRX: MempoolCapacityConfig.create(ethrxCap, Math.max(mtu, 2000) + 200),
+        DATA1: MempoolCapacityConfig.create(255, 12000),
       },
       LCoreAlloc: this.lcores.toConfigJson(),
       Face: {

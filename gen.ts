@@ -26,11 +26,11 @@ export class TrafficGen extends Host {
 
   public options = {
     nComps: 4,
-    nFetchThreads: 6,
-    nPatterns: 6, // name prefixes between a client and a server
+    nFetchThreads: 4,
+    nPatterns: 4, // name prefixes between a client and a server
     nDupPatterns: 0,
     interestLifetime: 300,
-    nServerThreads: 2,
+    nServerThreads: 1,
     dataHasSuffix: false,
     payloadLen: 1000,
     fetchBenchmarkArg: {
@@ -38,8 +38,8 @@ export class TrafficGen extends Host {
       Count: 600,
     },
     clientPortStartGap: 0, // start client ports at different times
-    clientRxDelay: 10E6,
-    serverRxDelay: 10E6,
+    clientRxDelay: 1E6,
+    serverRxDelay: 0,
   };
 
   private clients = new Map<string, Set<string>>();
