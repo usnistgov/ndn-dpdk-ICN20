@@ -21,11 +21,11 @@ export interface NetifInfo {
 /** Parse netif list in "PCI@numa" format. */
 function parseIfList(s: string): NetifInfo[] {
   return s.split(",").map((ifDef) => {
-    const m = /^([0-9a-f]{2}[:][0-9a-f]{2}[.][0-9a-f])[@]([0-9])$/.exec(ifDef);
+    const m = /^([\da-f]{2}:[\da-f]{2}\.[\da-f])@(\d)$/.exec(ifDef);
     if (!m) {
       throw new Error(`invalid netif definition: ${ifDef}`);
     }
-    return { pci: m[1], numa: parseInt(m[2], 10) };
+    return { pci: m[1], numa: Number.parseInt(m[2], 10) };
   });
 }
 

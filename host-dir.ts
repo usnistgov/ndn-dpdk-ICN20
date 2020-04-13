@@ -61,7 +61,7 @@ export class RemoteHostDir implements HostDir {
   }
 
   private makeRemoteFilename(localFile: string): string {
-    const name = path.basename(localFile).replace(/[^0-9A-Z]/ig, "");
+    const name = path.basename(localFile).replace(/[^\da-z]/gi, "");
     return `/tmp/ndndpdk-benchmark_temp-${this.nameRnd}-${name}`;
   }
 
@@ -90,7 +90,7 @@ export class RemoteHostDir implements HostDir {
 
   public delete(localFile: string) {
     const remoteFile = this.downloadLater(localFile);
-    this.ssh.exec(`rm -f ${remoteFile}`).catch();
+    this.ssh.exec(`rm -f ${remoteFile}`).catch(undefined);
     this.downloads.delete(localFile);
   }
 

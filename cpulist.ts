@@ -10,9 +10,9 @@ export class CpuList {
   public parse(input: string) {
     this.records.clear();
     for (const line of input.split("\n")) {
-      const m = /^([\d]+),([\d]+)$/.exec(line);
+      const m = /^(\d+),(\d+)$/.exec(line);
       if (m) {
-        this.add(parseInt(m[1], 10), parseInt(m[2], 10));
+        this.add(Number.parseInt(m[1], 10), Number.parseInt(m[2], 10));
       }
     }
   }
@@ -96,7 +96,7 @@ export class LcoreAssignment {
   public toConfigJson(): LCoreAllocConfig {
     const cfg: LCoreAllocConfig = {};
     for (const [role, lcores] of this.table) {
-      if (/^[_]/.test(role)) {
+      if (role.startsWith("_")) {
         continue;
       }
       cfg[role] = {

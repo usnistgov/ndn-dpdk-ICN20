@@ -2,8 +2,8 @@
   "dependencies": {
     "@strattadb/environment": "^8.0.0",
     "@types/graceful-fs": "^4.1.3",
-    "@types/ndjson": "gist:631afb9049895ff236bb352684ba6a31",
-    "@types/node": "^12.12.29",
+    "@types/ndjson": "^1.5.0",
+    "@types/node": "^12.12.35",
     "@types/node-ssh": "^7.0.0",
     "@types/readable-stream": "^2.3.5",
     "@types/shell-quote": "^1.6.1",
@@ -12,25 +12,21 @@
     "graceful-fs": "^4.2.3",
     "hard-rejection": "^2.1.0",
     "ndjson": "^1.5.0",
-    "node-ssh": "^7.0.1",
+    "node-ssh": "^8.0.0",
     "readable-stream": "^3.6.0",
     "shell-quote": "^1.7.2",
     "smallest-power-of-two": "^1.1.2",
-    "ts-node": "^8.6.2",
+    "ts-node": "^8.8.2",
     "typescript": "^3.8.3",
     "username": "^5.1.0"
   },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^2.22.0",
-    "@typescript-eslint/parser": "^2.22.0",
-    "eslint": "^6.8.0",
-    "eslint-config-xo": "^0.29.1",
-    "eslint-config-xo-typescript": "^0.26.0",
-    "eslint-plugin-simple-import-sort": "^5.0.1"
+    "eslint-plugin-simple-import-sort": "^5.0.2",
+    "xo": "^0.29.1"
   },
   "private": true,
   "scripts": {
     "build": "tsc --noEmit",
-    "lint": "eslint --ignore-path .gitignore -c mk/eslintrc-ts.js --fix **/*.ts"
+    "lint": "xo --fix"
   }
 }

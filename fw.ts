@@ -153,8 +153,8 @@ export class Forwarder extends Host {
         },
         LatencySampleFreq: 16,
         Suppress: {
-          Min: 200E6,
-          Max: 200E6,
+          Min: 200e6,
+          Max: 200e6,
         },
         PcctCapacity,
         CsCapMd,
@@ -216,7 +216,7 @@ export class Forwarder extends Host {
   /** Populate the FIB with many entries that are not expected to be used. */
   public async fillFib(count: number, template = "/65535=Z/%") {
     for (let i = 0; i < count; ++i) {
-      await this.setFibEntry(template.replace(/[%]/g, `${i}`), [1]);
+      await this.setFibEntry(template.replace(/%/g, `${i}`), [1]);
     }
   }
 

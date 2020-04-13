@@ -38,7 +38,7 @@ export class TrafficGen extends Host {
       Count: 600,
     },
     clientPortStartGap: 0, // start client ports at different times
-    clientRxDelay: 1E6,
+    clientRxDelay: 1e6,
     serverRxDelay: 0,
   };
 
