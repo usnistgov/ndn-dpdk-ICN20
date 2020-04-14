@@ -16,9 +16,13 @@ const tableCntKeys = {
 };
 
 const pktCntKeys = {
+  RxFrames: true,
+  RxOctets: true,
   RxInterests: true,
   RxData: true,
   RxNacks: true,
+  TxFrames: true,
+  TxOctets: true,
   TxInterests: true,
   TxData: true,
   TxNacks: true,
@@ -98,7 +102,7 @@ export class Forwarder extends Host {
     saveHrlog: false,
   };
 
-  public initConfigOptions: Parameters<Host["buildInitConfig"]>[0];
+  public initConfigOptions: NonNullable<Parameters<Host["buildInitConfig"]>[0]> = {};
 
   private faces = new Map<string, number>(); // portIndex=>face
   private ndtValues = new Map<number, number>(); // Index=>Value
