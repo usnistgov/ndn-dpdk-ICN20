@@ -2,6 +2,7 @@ import { Histogram } from "@usnistgov/ndn-dpdk/cmd/ndndpdk-hrlog2histogram/mod";
 import { InitConfig } from "@usnistgov/ndn-dpdk/cmd/ndnfw-dpdk/mod";
 import * as stat from "@usnistgov/ndn-dpdk/core/running_stat/mod";
 import { Counters as FaceCounters, FaceId } from "@usnistgov/ndn-dpdk/iface/mod";
+import PProgress from "p-progress";
 import smallestPowerOfTwo from "smallest-power-of-two";
 
 import { env, NetifInfo } from "./config";
@@ -218,11 +219,15 @@ export class Forwarder extends Host {
   }
 
   /** Populate the FIB with many entries that are not expected to be used. */
-  public async fillFib(count: number, template = "/65535=Z/%") {
+  public fillFib: (count: number, template?: string) => PProgress<void> =
+  PProgress.fn(async (count: number, arg2: any, arg3: any) => {
+    const [template, progress]: [string, PProgress.ProgressNotifier] =
+      typeof arg2 === "function" ? ["/65535=Z/%", arg2] : [arg2, arg3];
     for (let i = 0; i < count; ++i) {
       await this.setFibEntry(template.replace(/%/g, `${i}`), [1]);
+      progress(i / count);
     }
-  }
+  });
 
   private async readCounters(): Promise<FwCounters> {
     const cnt = makeEmptyFwCounters();

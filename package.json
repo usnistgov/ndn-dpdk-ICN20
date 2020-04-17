@@ -13,6 +13,8 @@
     "hard-rejection": "^2.1.0",
     "ndjson": "^1.5.0",
     "node-ssh": "^8.0.0",
+    "p-progress": "^0.4.2",
+    "progress": "^2.0.3",
     "readable-stream": "^3.6.0",
     "shell-quote": "^1.7.2",
     "smallest-power-of-two": "^1.1.2",
@@ -21,6 +23,7 @@
     "username": "^5.1.0"
   },
   "devDependencies": {
+    "@types/progress": "^2.0.3",
     "eslint-plugin-simple-import-sort": "^5.0.2",
     "xo": "^0.29.1"
   },

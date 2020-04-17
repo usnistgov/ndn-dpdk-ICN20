@@ -1,5 +1,5 @@
 import { InitConfig, MempoolCapacityConfig } from "@usnistgov/ndn-dpdk/appinit/mod";
-import { makeMgmtClient, RpcClient } from "@usnistgov/ndn-dpdk/mgmt/mod";
+import { RpcClient } from "@usnistgov/ndn-dpdk/mgmt/mod";
 import SSH from "node-ssh";
 import * as os from "os";
 import * as path from "path";
@@ -16,7 +16,7 @@ export class Host {
   protected readonly cpuList = new CpuList();
   protected readonly ethPorts = new Map<string, NetifInfo>();
   protected readonly lcores = new LcoreAssignment();
-  protected readonly mgmt: RpcClient;
+  protected mgmt!: RpcClient;
   private keepAlive!: NodeJS.Timeout;
   private hostDir!: HostDir;
 
@@ -31,13 +31,11 @@ export class Host {
       protected readonly dpdkFilePrefix: string,
       protected readonly mgmtUri: string,
       protected readonly netifs: readonly NetifInfo[]) {
-    this.mgmt = makeMgmtClient(mgmtUri);
   }
 
   /** Connect to the host. */
   public async connect(sshConfig: SSH.ConfigGiven) {
     await this.ssh.connect(sshConfig);
-    this.keepAlive = setInterval(() => { this.ssh.exec("pwd"); }, 30000);
 
     const isLocal = sshConfig.host === "localhost" && (await this.ssh.exec("hostname -s")) === os.hostname();
     if (isLocal) {
@@ -52,12 +50,18 @@ export class Host {
 
     const setupFile = await this.uploadScriptFile("setup.sh");
     await this.ssh.exec(`[[ -f /tmp/ndndpdk-benchmark_setup-done ]] || sudo HUGE1G_NPAGES=${env.HUGE1G_NPAGES} SPDK_PATH=${shellQuote([env.SPDK_PATH])} bash ${setupFile}`);
+    this.mgmt = RpcClient.create(this.mgmtUri);
+    this.keepAlive = setInterval(() => {
+      this.ssh.exec("pwd");
+      this.mgmt.request("Version", "Version", {}).then(() => undefined, () => undefined);
+    }, 30000);
   }
 
   /** Disconnect from the host. */
   public async disconnect() {
-    await this.hostDir.close();
     clearInterval(this.keepAlive);
+    this.mgmt.close();
+    await this.hostDir.close();
     this.ssh.dispose();
   }
 
