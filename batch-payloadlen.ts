@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import "hard-rejection/register";
 
 import { Scenario } from "./scenario";
@@ -21,4 +22,5 @@ for (const payloadLen of [100, 500, 1000, 2000, 4000, 8000]) {
     },
   );
 }
+process.exit();
 })();

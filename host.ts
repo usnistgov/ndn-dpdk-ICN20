@@ -1,4 +1,4 @@
-import { InitConfig, MempoolCapacityConfig } from "@usnistgov/ndn-dpdk/appinit/mod";
+import { InitConfig } from "@usnistgov/ndn-dpdk/appinit/mod";
 import { RpcClient } from "@usnistgov/ndn-dpdk/mgmt/mod";
 import SSH from "node-ssh";
 import * as os from "os";
@@ -18,7 +18,7 @@ export class Host {
   protected readonly lcores = new LcoreAssignment();
   protected mgmt!: RpcClient;
   private keepAlive!: NodeJS.Timeout;
-  private hostDir!: HostDir;
+  protected hostDir!: HostDir;
 
   /**
    * Constructor.
@@ -48,12 +48,12 @@ export class Host {
 
     this.cpuList.parse(await this.ssh.exec(CpuList.COMMAND));
 
-    const setupFile = await this.uploadScriptFile("setup.sh");
+    const setupFile = await this.hostDir.upload(path.join(__dirname, "setup.sh"));
     await this.ssh.exec(`[[ -f /tmp/ndndpdk-benchmark_setup-done ]] || sudo HUGE1G_NPAGES=${env.HUGE1G_NPAGES} SPDK_PATH=${shellQuote([env.SPDK_PATH])} bash ${setupFile}`);
     this.mgmt = RpcClient.create(this.mgmtUri);
     this.keepAlive = setInterval(() => {
-      this.ssh.exec("pwd");
-      this.mgmt.request("Version", "Version", {}).then(() => undefined, () => undefined);
+      this.ssh.exec("pwd").catch(() => undefined);
+      this.mgmt.request("Version", "Version", {}).catch(() => undefined);
     }, 30000);
   }
 
@@ -83,9 +83,9 @@ export class Host {
   protected buildInitConfig({ ethrxCap = 1048575, mtu = 9000 } = {}): InitConfig {
     return {
       Mempool: {
-        IND: MempoolCapacityConfig.create(ethrxCap * 2),
-        ETHRX: MempoolCapacityConfig.create(ethrxCap, Math.max(mtu, 2000) + 200),
-        DATA1: MempoolCapacityConfig.create(255, 12000),
+        IND: { Capacity: ethrxCap * 2 },
+        ETHRX: { Capacity: ethrxCap, DataroomSize: Math.max(mtu + 256, 2200) },
+        DATA1: { Capacity: 255, DataroomSize: 12000 },
       },
       LCoreAlloc: this.lcores.toConfigJson(),
       Face: {
@@ -122,19 +122,19 @@ export class Host {
                       `${Array.from(this.ethPorts.values()).map((netif) => `-w ${netif.pci}`).join(" ")}`} `;
     let environ = `EALPARAMS=${shellQuote([ealParams])}`;
 
-    const cpusetFile = await this.uploadScriptFile("cpuset.sh");
+    const cpusetFile = await this.hostDir.upload(path.join(__dirname, "cpuset.sh"));
     environ += ` CPUSETBIN=${cpusetFile} CPUSET_B=${assigned.join()} CPUSET_O=${unassigned.join()}`;
 
     for (const [envVar, localFile] of Object.entries(uploads)) {
-      const remoteFile = await this.uploadRuntimeFile(localFile);
+      const remoteFile = await this.hostDir.upload(this.runtimeDir.getFilename(localFile));
       environ += ` ${envVar}=${remoteFile}`;
     }
     for (const [envVar, localFile] of Object.entries(downloads)) {
-      const remoteFile = this.downloadRuntimeFileLater(localFile);
+      const remoteFile = await this.hostDir.create(this.runtimeDir.getFilename(localFile), { download: true });
       environ += ` ${envVar}=${remoteFile}`;
     }
 
-    const scriptFile = await this.uploadScriptFile(scriptName);
+    const scriptFile = await this.hostDir.upload(path.join(__dirname, scriptName));
     return this.ssh.exec(`${environ} bash ${scriptFile}`);
   }
 
@@ -142,23 +142,7 @@ export class Host {
   public async stop() {
     const pattern = `\\--file-prefix ${this.dpdkFilePrefix} `;
     await this.ssh.exec(`while pgrep -f "${pattern}" >/dev/null; do sudo pkill -f "${pattern}"; sleep 1; done`);
-    const cpusetFile = await this.uploadScriptFile("cpuset.sh");
+    const cpusetFile = await this.hostDir.upload(path.join(__dirname, "cpuset.sh"));
     await this.ssh.exec(`sudo bash ${cpusetFile} 0`);
-  }
-
-  protected uploadScriptFile(filename: string) {
-    return this.hostDir.upload(path.join(__dirname, filename));
-  }
-
-  protected uploadRuntimeFile(filename: string, force = false) {
-    return this.hostDir.upload(this.runtimeDir.getFilename(filename), force);
-  }
-
-  protected downloadRuntimeFileLater(filename: string) {
-    return this.hostDir.downloadLater(this.runtimeDir.getFilename(filename));
-  }
-
-  protected cancelDownloadRuntimeFile(filename: string) {
-    return this.hostDir.delete(this.runtimeDir.getFilename(filename));
   }
 }

@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import "hard-rejection/register";
 
 import ProgressBar from "progress";
@@ -29,4 +30,5 @@ for (const fibCount of [1e4, 1e5, 1e6]) {
     },
   );
 }
+process.exit();
 })();

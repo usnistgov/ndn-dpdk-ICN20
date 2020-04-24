@@ -267,27 +267,22 @@ export class Forwarder extends Host {
       return undefined;
     }
 
-    const localFilename = `${Date.now()}.hrlog`;
-    const remoteFilename = this.downloadRuntimeFileLater(localFilename);
-    await this.ssh.exec(`touch ${remoteFilename}`);
+    const localFile = `${Date.now()}.hrlog`;
+    const remoteFile = await this.hostDir.create(localFile, { download: this.options.saveHrlog, touch: true });
     await this.mgmt.request("Hrlog", "Start", {
-      Filename: remoteFilename,
+      Filename: remoteFile,
     });
-    return localFilename;
+    return localFile;
   }
 
-  public async stopHrlog(localFilename: string|undefined): Promise<HrlogHistograms|undefined> {
-    if (!localFilename) {
+  public async stopHrlog(localFile: string|undefined): Promise<HrlogHistograms|undefined> {
+    if (!localFile) {
       return undefined;
     }
-    const remoteFilename = this.downloadRuntimeFileLater(localFilename);
+    const remoteFile = await this.hostDir.create(localFile);
     await this.mgmt.request("Hrlog", "Stop", {
-      Filename: remoteFilename,
+      Filename: remoteFile,
     });
-    const hists = JSON.parse(await this.ssh.exec(`ndndpdk-hrlog2histogram -f ${remoteFilename}`));
-    if (!this.options.saveHrlog) {
-      this.cancelDownloadRuntimeFile(localFilename);
-    }
-    return hists;
+    return JSON.parse(await this.ssh.exec(`ndndpdk-hrlog2histogram -f ${remoteFile}`));
   }
 }

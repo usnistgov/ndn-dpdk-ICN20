@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { getSshConfig } from "./config";
 import { Forwarder } from "./fw";
 import { TrafficGen } from "./gen";

@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import "hard-rejection/register";
 
 import { Scenario } from "./scenario";
@@ -25,4 +26,5 @@ for (const dir of ["BC", "CB", "BCCB", "BA", "AB", "BAAB"]) {
     }
   }
 }
+process.exit();
 })();

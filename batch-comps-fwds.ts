@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import "hard-rejection/register";
 
 import { Scenario } from "./scenario";
@@ -22,4 +23,5 @@ for (const nComps of [4, 10, 16]) {
     );
   }
 }
+process.exit();
 })();

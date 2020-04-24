@@ -1,6 +1,7 @@
+#!/usr/bin/env node
 import "hard-rejection/register";
 
-import { Scenario } from "./scenario";
+import { FixedRuns, Scenario } from "./scenario";
 
 (async () => {
 await Scenario.execute("simple",
@@ -14,5 +15,7 @@ await Scenario.execute("simple",
   async ({ fw }) => {
     await fw.fillFib(10000);
   },
+  new FixedRuns(1),
 );
+process.exit();
 })();

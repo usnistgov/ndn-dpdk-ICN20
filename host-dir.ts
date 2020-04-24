@@ -1,6 +1,13 @@
-import * as fs from "fs";
+import { promises as fs } from "graceful-fs";
 import SSH from "node-ssh";
 import * as path from "path";
+
+interface CreateOptions {
+  /** Schedule to download later. */
+  download?: boolean;
+  /** Create the file now. */
+  touch?: boolean;
+}
 
 /** Access files on local or remote host. */
 export interface HostDir {
@@ -13,14 +20,11 @@ export interface HostDir {
   upload(localFile: string, force?: boolean): Promise<string>;
 
   /**
-   * Schedule to download a file from the host.
+   * Create a file on the host.
    * @param localFile local filename.
    * @returns remote filename to be written.
    */
-  downloadLater(localFile: string): string;
-
-  /** Delete a file created by downloadLater(). */
-  delete(localFile: string): void;
+  create(localFile: string, opts?: CreateOptions): Promise<string>;
 
   /** Download files as scheduled and delete uploads. */
   close(): Promise<void>;
@@ -28,20 +32,24 @@ export interface HostDir {
 
 /** Access files on local host. */
 export class LocalHostDir implements HostDir {
+  private readonly deletes = new Set<string>();
+
   public upload(localFile: string) {
     return Promise.resolve(localFile);
   }
 
-  public downloadLater(localFile: string) {
+  public async create(localFile: string, { download = false, touch = false }: CreateOptions = {}) {
+    if (!download) {
+      this.deletes.add(localFile);
+    }
+    if (touch) {
+      await fs.writeFile(localFile, "");
+    }
     return localFile;
   }
 
-  public delete(localFile: string) {
-    fs.unlink(localFile, () => undefined);
-  }
-
-  public close() {
-    return Promise.resolve();
+  public async close() {
+    await Promise.all(Array.from(this.deletes).map((localFile) => fs.unlink(localFile).catch(() => undefined)));
   }
 }
 
@@ -49,7 +57,7 @@ export class LocalHostDir implements HostDir {
 export class RemoteHostDir implements HostDir {
   private sftp!: SSH.SFTP;
   private readonly uploads = new Map<string, string>();
-  private readonly downloads = new Map<string, string>();
+  private readonly creates = new Map<string, { remoteFile: string; download: boolean }>();
   private readonly nameRnd = Math.floor(Math.random() * 100000000);
 
   constructor(private readonly ssh: SSH) {
@@ -77,27 +85,26 @@ export class RemoteHostDir implements HostDir {
     return remoteFile;
   }
 
-  public downloadLater(localFile: string) {
-    let remoteFile = this.downloads.get(localFile);
-    if (remoteFile) {
-      return remoteFile;
+  public async create(localFile: string, { download = false, touch = false }: CreateOptions = {}) {
+    const record = this.creates.get(localFile);
+    if (record) {
+      return record.remoteFile;
     }
 
-    remoteFile = this.makeRemoteFilename(localFile);
-    this.downloads.set(localFile, remoteFile);
+    const remoteFile = this.makeRemoteFilename(localFile);
+    this.creates.set(localFile, { remoteFile, download });
+    if (touch) {
+      await this.ssh.exec(`touch ${remoteFile}`);
+    }
     return remoteFile;
-  }
-
-  public delete(localFile: string) {
-    const remoteFile = this.downloadLater(localFile);
-    this.ssh.exec(`rm -f ${remoteFile}`).catch(undefined);
-    this.downloads.delete(localFile);
   }
 
   public async close() {
     const deleting = Array.from(this.uploads.values());
-    for (const [localFile, remoteFile] of this.downloads) {
-      await this.ssh.getFile(localFile, remoteFile, this.sftp);
+    for (const [localFile, { remoteFile, download }] of this.creates) {
+      if (download) {
+        await this.ssh.getFile(localFile, remoteFile, this.sftp);
+      }
       deleting.push(remoteFile);
     }
     if (deleting.length > 0) {

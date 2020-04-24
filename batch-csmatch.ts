@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import "hard-rejection/register";
 
 import { FixedRuns, Scenario } from "./scenario";
@@ -35,4 +36,5 @@ for (let csCapacityLog2 = 17; csCapacityLog2 <= 20; ++csCapacityLog2) {
     );
   }
 }
+process.exit();
 })();
