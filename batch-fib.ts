@@ -12,6 +12,7 @@ const nFwds = 8;
 for (const fibCount of [1e4, 1e5, 1e6]) {
   await Scenario.execute(`fib/${fibCount}`,
     async ({ fw, gen }) => {
+      fw.options.enableHrlog = true;
       for (const port of dir) {
         fw.declareEthPort(port);
       }

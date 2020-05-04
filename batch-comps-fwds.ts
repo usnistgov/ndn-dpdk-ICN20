@@ -10,6 +10,7 @@ for (const nComps of [4, 10, 16]) {
   for (const nFwds of [1, 2, 4, 8, 12]) {
     await Scenario.execute(`comps-fwds/${nComps}-${nFwds}`,
       async ({ fw, gen }) => {
+        fw.options.enableHrlog = true;
         for (const port of dir) {
           fw.declareEthPort(port);
         }
