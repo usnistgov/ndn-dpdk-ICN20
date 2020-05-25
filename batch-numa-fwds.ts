@@ -3,12 +3,10 @@ import "hard-rejection/register";
 
 import { FixedRuns, Scenario } from "./scenario";
 
-const dir = "BC";
-
 (async () => {
-for (const nComps of [4, 10, 16]) {
+for (const dir of ["BC", "BA"]) {
   for (const nFwds of [1, 2, 4, 8, 12]) {
-    await Scenario.execute(`comps-fwds/${nComps}-${nFwds}`,
+    await Scenario.execute(`numa-fwds/${dir}-${nFwds}`,
       async ({ fw, gen }) => {
         fw.options.enableHrlog = true;
         for (const port of dir) {
@@ -16,7 +14,6 @@ for (const nComps of [4, 10, 16]) {
         }
         fw.allocFwds(1, nFwds);
 
-        gen.options.nComps = nComps;
         gen.options.nPatterns = nFwds;
         gen.addTrafficDirection(dir[0], dir[1]);
         gen.addTrafficDirection(dir[1], dir[0]);
